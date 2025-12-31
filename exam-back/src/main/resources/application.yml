@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/exam
+    username: root
+    password: 0924
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  ai:
+    openai:
+      base-url: https://yinli.one/
+      api-key: sk-HhDe9LTWQRl8XevaB6IO4Qmr4oWdLhlgx9ATDZbtvhF1Ys6i
+      chat:
+        options:
+          model: gpt-3.5-turbo
+          temperature: 0.7
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor: debug
+# ??????
+file:
+  upload-dir: uploads/
+server:
+  port: 8080
