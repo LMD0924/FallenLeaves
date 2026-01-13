@@ -14,10 +14,9 @@ const globalWsHandlerId = 'global-notification'
 const initGlobalWebSocket = () => {
   // 先注销可能存在的旧处理器，避免重复注册
   webSocketService.unregisterHandler(globalWsHandlerId)
-  
+
   const handlers = {
     onConnected: () => {
-      console.log('全局WebSocket连接成功')
     },
 
     onDisconnected: () => {
@@ -53,7 +52,6 @@ const showGlobalNotification = (noticeData) => {
 const requestNotificationPermission = () => {
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission().then(permission => {
-      console.log('通知权限:', permission)
     })
   }
 }
@@ -72,7 +70,6 @@ onMounted(() => {
       setTimeout(() => {
         initGlobalWebSocket() // 确保处理器已正确注册
         if (!webSocketService.isConnected) {
-          console.log('App组件检测到WebSocket未连接，尝试连接...')
           webSocketService.connect()
         }
       }, 500)

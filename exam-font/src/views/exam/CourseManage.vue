@@ -149,7 +149,6 @@ const switchToUsersTab = () => {
 // 新增：打开课程成员对话框
 const openMembersDialog = async (course) => {
   currentCourse.value = course
-  if(user.value.role==='学生') course.id=course.course_id
   try {
     // 获取课程成员
     const members = await new Promise((resolve, reject) => {
@@ -171,7 +170,6 @@ const openMembersDialog = async (course) => {
 // 新增：打开添加成员对话框
 const openAddMembersDialog = async (course) => {
   currentCourse.value = course
-  if(user.value.role==='学生') course.id=course.course_id
   try {
     // 先获取当前课程的成员列表，确保数据最新
     const members = await new Promise((resolve, reject) => {
@@ -309,57 +307,22 @@ const auditForm = ref({
 })
 
 // 打开创建课程对话框
-const openCreateDialog = async () => {
-  try {
-    // 确保获取最新的用户信息
-    await fetchUserInfo()
-
-    courseForm.value = {
-      id: '',
-      name: '',
-      score: 0,
-      teacher_id: user.value.id,
-      teacher_name: user.value.name || user.value.account || '未知教师',
-      status: '未审核'
-    }
-    showCreateDialog.value = true
-  } catch (error) {
-    console.error('获取用户信息失败:', error)
-    // 即使获取失败，也使用默认值
-    courseForm.value = {
-      id: '',
-      name: '',
-      score: 0,
-      teacher_id: '',
-      teacher_name: '未知教师',
-      status: '未审核'
-    }
-    showCreateDialog.value = true
+const openCreateDialog = () => {
+  courseForm.value = {
+    id: '',
+    name: '',
+    score: 0,
+    teacher_id: user.value.id,
+    teacher_name: user.value.name,
+    status: '未审核'
   }
+  showCreateDialog.value = true
 }
 
 // 打开编辑课程对话框
-const openEditDialog = async (course) => {
-  // 确保获取最新的用户信息
-  try {
-    await fetchUserInfo()
-    // 如果课程没有teacher_name或为空，使用当前用户信息
-    const teacherName = course.teacher_name && course.teacher_name.trim()
-      ? course.teacher_name
-      : (user.value.name || user.value.account || '未知教师')
-
-    courseForm.value = {
-      ...course,
-      teacher_name: teacherName,
-      teacher_id: user.value.id // 确保teacher_id是当前用户ID
-    }
-    showEditDialog.value = true
-  } catch (error) {
-    console.error('获取用户信息失败:', error)
-    // 即使获取失败，也使用course原有数据
-    courseForm.value = { ...course }
-    showEditDialog.value = true
-  }
+const openEditDialog = (course) => {
+  courseForm.value = { ...course }
+  showEditDialog.value = true
 }
 
 // 打开用户编辑对话框
@@ -750,9 +713,8 @@ onMounted(async () => {
                 <!-- 课程头部 -->
                 <div class="flex justify-between items-start mb-4">
                   <div>
-                    <h4 :class="isDark?'text-white':'text-gray-900'" class="text-lg font-semibold mb-1 truncate" :title="course.name">{{ course.name }}</h4>
-                    <p v-if="user.role==='学生'" :class="isDark?'text-white/60':'text-gray-500'" class="text-sm">课程ID: {{ course.course_id }}</p>
-                    <p v-else :class="isDark?'text-white/60':'text-gray-500'" class="text-sm">课程ID: {{ course.id }}</p>
+                    <h4 :class="isDark?'text-white':'text-gray-900'" class="text-lg font-semibold mb-1 truncate" :title="course.name || course.course_name">{{ course.name || course.course_name }}</h4>
+                    <p :class="isDark?'text-white/60':'text-gray-500'" class="text-sm">课程ID: {{ course.id || course.course_id }}</p>
                   </div>
                   <span :class="{
                   'px-2 py-1 rounded-full text-xs font-medium': true,
@@ -1135,7 +1097,6 @@ onMounted(async () => {
               </td>
               <td class="py-4 px-4 text-right">
                 <button
-                 v-if="user.role!=='学生'"
                   @click="removeUserFromCourse(member.user_id)"
                   class="p-2 rounded-full transition-colors"
                   :class="isDark ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400' : 'bg-red-100 hover:bg-red-200 text-red-600'"

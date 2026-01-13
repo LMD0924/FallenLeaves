@@ -30,7 +30,10 @@ public class ExamController {
     //获取自己的信息
     @GetMapping("/current")
     public RestBean<User> SelectById(HttpServletRequest request){
-        int userId =(int) request.getAttribute("id");
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User result=examService.SelectById(userId);
         if(result!=null) {
             result.setPassword("**不给看**");
@@ -118,8 +121,14 @@ public class ExamController {
                                               @RequestParam("account") String account,
                                               @RequestParam(defaultValue = "审核未通过") String statue,
                                               HttpServletRequest request){
-        int userId =(int) request.getAttribute("id");
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         if(user.getRole().equals("教师")) statue="审核通过";
         else statue="审核中";
         int result=examService.InsertCourseUser(course_id,user_id,role,account,statue);
@@ -137,7 +146,10 @@ public class ExamController {
     //查询用户课程
     @GetMapping("SelectUserCourse")
     public RestBean<List<Course>> SelectUserCourse(HttpServletRequest request){
-        int userId=(int) request.getAttribute("id");
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         List<Course> result=examService.SelectUserCourse(userId);
         if(result!=null) return RestBean.success("查询成功",result);
         else return RestBean.failure(404,"失败");
@@ -306,6 +318,13 @@ public class ExamController {
         if(list!=null) return RestBean.success("查询成功",list);
         else return RestBean.failure(404,"查询失败");
     }
+    
+    @GetMapping("/list")
+    public RestBean<List<Exam>> listExam(){
+        List<Exam> list=examService.AllExam();
+        if(list!=null) return RestBean.success("查询成功",list);
+        else return RestBean.failure(404,"查询失败");
+    }
     //根据试卷id查询
     @GetMapping("/SelectExamById")
     public RestBean<Exam> SelectExamById(@RequestParam("id") Integer id){
@@ -368,8 +387,14 @@ public class ExamController {
     //获取请假记录
     @GetMapping("/GetVacation")
     public RestBean<List<Vacation>> GetVacation(HttpServletRequest request){
-        int userId=(int) request.getAttribute("id");
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=examService.SelectById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         List<Vacation> list;
         if(user.getRole().equals("管理员")){
             list = examService.getAllVacation();
@@ -384,8 +409,14 @@ public class ExamController {
     public RestBean<Integer> UpdateVacation(@RequestParam("id") Integer id,
                                          @RequestParam("status") String status,
                                          HttpServletRequest request){
-        int userId=(int) request.getAttribute("id");
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=examService.SelectById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         if(!(user.getRole().equals("管理员"))&&status.equals("已注销")){
             int result=examService.updateVacation(id,status);
             if(result!=0) return RestBean.success("注销成功",result);

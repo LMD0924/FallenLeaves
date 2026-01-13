@@ -1,6 +1,6 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue'
-import {get, post} from "@/net/index.js";
+import {get, post, upload} from "@/net/index.js";
 import {formatDate} from "@/time/Data.js";
 import {message} from "ant-design-vue";
 import { isDark } from "@/stores/theme.js" // 统一使用主题存储
@@ -107,7 +107,7 @@ const handleAvatarUpload = async (event) => {
   avatarLoading.value = true
 
   try {
-    post("api/exam/updateAvatar", formData,
+    upload("api/exam/updateAvatar", formData,
       (message, data) => {
         if (message === '上传成功') {
           user.value.avatar = data

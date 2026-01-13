@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, ref, onBeforeUnmount, computed, watch } from 'vue'
 import { get, post } from '@/net/index.js'
-import { message } from 'ant-design-vue'
-import { useRoute } from 'vue-router';
+import { message, Modal } from 'ant-design-vue'
+import { useRoute, useRouter } from 'vue-router';
 
 const showBackgroundSettings = ref(false)
 const [messageApi, contextHolder] = message.useMessage();
@@ -16,9 +16,11 @@ const examLoading = ref(false) // 考试加载状态
 const currentPage = ref(1) // 当前页码
 const pageSize = 1 // 每页1题
 let timer = null
+let autosaveTimer = null
 
 // 路由
 const route = useRoute();
+const router = useRouter();
 
 /* ---------- 处理题目数据转换 ---------- */
 const processQuestions = (rawQuestions) => {
@@ -99,6 +101,9 @@ const loadExamData = async () => {
       )
     })
 
+    // 创建或获取考试记录
+    await createOrGetExamRecord(examId)
+
     // 设置倒计时
     countdown.value = (paper.value.duration || paper.value.exam_duration || 120) * 60
 
@@ -135,11 +140,17 @@ watch(currentPage, (newPage) => {
 
 /* ---------- 保存当前题目的答案 ---------- */
 const saveCurrentAnswer = () => {
-  const currentQuestion = currentQuestion.value
-  if (currentQuestion) {
-    const answer = answerSheet.value[currentQuestion.id]
+  // 确保 currentQuestion 已经初始化
+  const question = currentQuestion.value
+  if (!question) {
+    console.log('currentQuestion 还未初始化')
+    return
+  }
+
+  if (question) {
+    const answer = answerSheet.value[question.id]
     if (answer !== undefined && answer !== null) {
-      localStorage.setItem(`exam_${route.query.examId}_answer_${currentQuestion.id}`, JSON.stringify(answer))
+      localStorage.setItem(`exam_${route.query.examId}_answer_${question.id}`, JSON.stringify(answer))
     }
   }
 }
@@ -168,8 +179,20 @@ watch(questions, () => {
   }
 })
 
+// 监听答案变化，实现自动保存
+watch(() => JSON.stringify(answerSheet.value), () => {
+  // 延迟保存，避免频繁保存
+  clearTimeout(autosaveTimer)
+  autosaveTimer = setTimeout(() => {
+    Object.keys(answerSheet.value).forEach(key => {
+      localStorage.setItem(`exam_${route.query.examId}_answer_${key}`, JSON.stringify(answerSheet.value[key]))
+    })
+  }, 1000)
+}, { deep: true })
+
 onBeforeUnmount(() => {
   clearInterval(timer)
+  clearTimeout(autosaveTimer)
   // 组件卸载前保存所有答案
   saveCurrentAnswer()
 })
@@ -255,6 +278,55 @@ const getUserInfo = () => {
   })
 }
 
+// 创建或获取考试记录
+const createOrGetExamRecord = (examId) => {
+  return new Promise((resolve, reject) => {
+    // 先尝试获取现有记录
+    get('/api/exam/record/find', { examId: examId },
+      (message, data) => {
+        if (data && data.id) {
+          console.log('找到现有考试记录:', data)
+          resolve(data)
+        } else {
+          // 如果没有记录，创建新记录
+          createExamRecord(examId).then(resolve).catch(reject)
+        }
+      },
+      (error) => {
+        // 如果获取失败，尝试创建新记录
+        console.log('获取考试记录失败，尝试创建新记录:', error)
+        createExamRecord(examId).then(resolve).catch(reject)
+      }
+    )
+  })
+}
+
+// 创建考试记录
+const createExamRecord = (examId) => {
+  return new Promise((resolve, reject) => {
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    const recordData = {
+      examId: examId,
+      studentId: User.value.id,
+      startTime: now,
+      status: '进行中',
+      attemptCount: 1
+    }
+    
+    post('/api/exam/record/insert', recordData,
+      (message, data) => {
+        console.log('创建考试记录成功:', data)
+        resolve(data)
+      },
+      (error) => {
+        console.error('创建考试记录失败:', error)
+        // 即使创建失败也继续，可能记录已存在
+        resolve(null)
+      }
+    )
+  })
+}
+
 /* ---------- 导航功能 ---------- */
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
@@ -292,59 +364,58 @@ const isMarked = (idx) => {
 /* ---------- 交卷功能 ---------- */
 const submitPaper = () => {
   if (submitting.value || examLoading.value) return
-  submitting.value = true
+  
+  // 确认提交
+  Modal.confirm({
+    title: '确认交卷',
+    content: '确定要提交试卷吗？提交后将无法修改答案。',
+    okText: '确认提交',
+    cancelText: '取消',
+    onOk() {
+      submitting.value = true
 
-  // 构建提交数据
-  const submitData = {
-    paperId: paper.value.id,
-    userId: User.value.id,
-    answers: Object.keys(answerSheet.value).map(key => ({
-      questionId: key,
-      answer: answerSheet.value[key]
-    }))
-  }
+      // 构建提交数据 - 修复：使用examId而不是paperId
+      const submitData = {
+        paperId: parseInt(route.query.examId), // 后端期望的是examId
+        answers: Object.keys(answerSheet.value).map(key => {
+          const answer = answerSheet.value[key]
+          // 确保questionId是整数
+          const questionId = typeof key === 'string' ? parseInt(key) : key
+          return {
+            questionId: questionId,
+            answer: answer
+          }
+        })
+      }
 
-  console.log('提交数据:', submitData)
+      console.log('提交数据:', submitData)
 
-  // 模拟提交成功效果
-  setTimeout(() => {
-    message.success('提交成功！')
-    // 清除计时器
-    if (timer) {
-      clearInterval(timer)
+      // 实际提交接口
+      post('/api/exam/record/submit-paper', submitData, 
+        (msg) => {
+          message.success(msg || '提交成功！')
+          // 清除计时器
+          if (timer) {
+            clearInterval(timer)
+          }
+
+          // 清除本地存储的答案
+          Object.keys(answerSheet.value).forEach(key => {
+            localStorage.removeItem(`exam_${route.query.examId}_answer_${key}`)
+          })
+
+          // 跳转到考试记录页面
+          setTimeout(() => {
+            router.push('/exam/ExamRecord')
+          }, 1500)
+        }, 
+        (error) => {
+          message.error('提交失败: ' + (error.message || '网络错误'))
+          submitting.value = false
+        }
+      )
     }
-    submitting.value = false
-
-    // 清除本地存储的答案
-    Object.keys(answerSheet.value).forEach(key => {
-      localStorage.removeItem(`exam_${route.query.examId}_answer_${key}`)
-    })
-
-    // 这里可以根据实际需求跳转到结果页面
-    // 例如: router.push('/exam-result?paperId=' + paper.value.id)
-  }, 1500)
-
-  // 实际提交接口可以取消注释使用
-  // post('/api/exam/submit', submitData, msg => {
-  //   message.success(msg || '提交成功')
-  //   // 清除计时器
-  //   if (timer) {
-  //     clearInterval(timer)
-  //   }
-  //   // 清除本地存储
-  //   Object.keys(answerSheet.value).forEach(key => {
-  //     localStorage.removeItem(`exam_${route.query.examId}_answer_${key}`)
-  //   })
-  //   // 显示提交结果或跳转到结果页面
-  //   setTimeout(() => {
-  //     // 这里可以根据实际需求跳转到结果页面
-  //     // 例如: router.push('/exam-result?paperId=' + paper.value.id)
-  //   }, 2000)
-  // }, () => {
-  //   message.error('提交失败')
-  // }).finally(() => {
-  //   submitting.value = false
-  // })
+  })
 }
 
 /* ---------- 页面离开前提示 ---------- */

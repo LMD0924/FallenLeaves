@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { get, post } from "@/net/index.js";
-import { message } from "ant-design-vue"
+import { message, Modal } from "ant-design-vue"
 import { isDark } from "@/stores/theme.js" // 统一使用主题存储
 
 const [messageApi, contextHolder] = message.useMessage()
@@ -200,9 +200,25 @@ const editQuestion = (question) => {
 
 // 删除题目
 const deleteQuestion = (id) => {
-  post('api/exam/deleteQuestion', { id }, (message) => {
-    messageApi.success(message)
-    fetchQuestions()
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除这道题目吗？此操作不可恢复。',
+    okText: '确认删除',
+    cancelText: '取消',
+    okType: 'danger',
+    onOk() {
+      // 使用UpdateQuestionStatus接口，将状态设置为"已删除"或类似状态
+      // 或者如果后端有DeleteQuestion接口，使用该接口
+      post('api/exam/UpdateQuestionStatus', { 
+        id: id, 
+        status: '已删除' 
+      }, (message) => {
+        messageApi.success(message || '删除成功')
+        fetchQuestions()
+      }, (error) => {
+        messageApi.error('删除失败: ' + error)
+      })
+    }
   })
 }
 

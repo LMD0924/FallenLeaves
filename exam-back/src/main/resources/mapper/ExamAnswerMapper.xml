@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.examback.mapper.ExamAnswerMapper">
+
+    <!-- 基础结果映射 -->
+    <resultMap id="BaseResultMap" type="org.example.examback.entity.ExamAnswer">
+        <id property="id" column="id"/>
+        <result property="examRecordId" column="exam_record_id"/>
+        <result property="questionId" column="question_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentAnswer" column="student_answer"/>
+        <result property="score" column="score"/>
+        <result property="isCorrect" column="is_correct"/>
+        <result property="teacherComment" column="teacher_comment"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 批量插入答案 -->
+    <insert id="insertBatch">
+        INSERT INTO xm_exam_answer
+        (exam_record_id, question_id, student_id, exam_id, student_answer,
+        score, is_correct, teacher_comment, created_at, updated_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.examRecordId},
+            #{item.questionId},
+            #{item.studentId},
+            #{item.examId},
+            #{item.studentAnswer, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+            #{item.score},
+            #{item.isCorrect},
+            #{item.teacherComment},
+            #{item.createdAt},
+            #{item.updatedAt}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 获取客观题答案用于自动批改 -->
+    <select id="selectObjectiveAnswers" resultType="map">
+        SELECT
+            ea.id,
+            ea.question_id,
+            ea.student_answer,
+            eq.question_score,
+            qt.answer as correct_answer,
+            qt.question_type
+        FROM xm_exam_answer ea
+                 INNER JOIN xm_exam_question eq ON ea.question_id = eq.question_id AND eq.exam_id = #{examId}
+                 INNER JOIN xm_question_type qt ON eq.question_id = qt.id
+        WHERE ea.exam_record_id = #{examRecordId}
+          AND (
+            qt.question_type IN ('单选题', '多选题', '填空题')
+                OR qt.question_type IN ('radio', 'checkbox', 'blank')
+            )
+    </select>
+
+    <!-- 根据考试记录ID获取所有答案 -->
+    <select id="selectByExamRecordId" resultMap="BaseResultMap">
+        SELECT *
+        FROM xm_exam_answer
+        WHERE exam_record_id = #{examRecordId}
+        ORDER BY id
+    </select>
+
+    <!-- 根据考试记录ID和题目ID获取答案 -->
+    <select id="selectByRecordAndQuestion" resultMap="BaseResultMap">
+        SELECT *
+        FROM xm_exam_answer
+        WHERE exam_record_id = #{examRecordId}
+          AND question_id = #{questionId}
+            LIMIT 1
+    </select>
+
+    <!-- 批量更新答案分数 -->
+    <update id="updateBatchScores">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE xm_exam_answer
+            SET score = #{item.score},
+            is_correct = #{item.isCorrect},
+            teacher_comment = #{item.teacherComment},
+            updated_at = NOW()
+            WHERE id = #{item.id}
+        </foreach>
+    </update>
+
+    <!-- 统计考试记录的总分 -->
+    <select id="sumScoreByExamRecordId" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(score), 0)
+        FROM xm_exam_answer
+        WHERE exam_record_id = #{examRecordId}
+    </select>
+
+    <!-- 根据学生ID和考试ID查询考试答案 -->
+    <select id="selectByStudentAndExam" resultMap="BaseResultMap">
+        SELECT ea.*
+        FROM xm_exam_answer ea
+                 INNER JOIN xm_exam_record er ON ea.exam_record_id = er.id
+        WHERE er.student_id = #{studentId}
+          AND er.exam_id = #{examId}
+        ORDER BY ea.created_at
+    </select>
+
+</mapper>

@@ -25,16 +25,27 @@ public class UserController {
     FileUploadUtil fileUploadUtil;
     @GetMapping("/information")
     public RestBean<User> getUserInfo(HttpServletRequest request){
-        System.out.println("id:"+request.getAttribute("id"));
         Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         return RestBean.success("成功",user);
     }
 //获取个人信息
     @GetMapping("/current")
     public RestBean<User> getCurrentUser(HttpServletRequest request){
         Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         return RestBean.success("获取成功",user);
     }
     @GetMapping("/AllUser")
@@ -65,7 +76,13 @@ public class UserController {
             String avatarUrl=fileUploadUtil.uploadFile(file);
             //更新用户头像
             Integer userId=(Integer) request.getAttribute("id");
+            if(userId == null) {
+                return RestBean.failure(401,"未登录或token无效");
+            }
             User user=userService.getUserById(userId);
+            if(user == null) {
+                return RestBean.failure(404,"用户不存在");
+            }
             user.setAvatar(avatarUrl);
             userService.updateAvatar(avatarUrl,userId);
             return RestBean.success("上传成功",avatarUrl);
@@ -78,6 +95,9 @@ public class UserController {
         public RestBean<String> updateUser(@ModelAttribute User user,
                                            HttpServletRequest request){
             Integer userId=(Integer) request.getAttribute("id");
+            if(userId == null) {
+                return RestBean.failure(401,"未登录或token无效");
+            }
             user.setId(userId);
             userService.updateUser(user);
             return RestBean.success("更新成功");
@@ -96,7 +116,10 @@ public class UserController {
     @PostMapping("/UpdateOnline")
     public RestBean<String> updateOnlineStatus(@RequestParam("is_online") Boolean is_online,
                                                HttpServletRequest request){
-        int userId=(Integer) request.getAttribute("id");
+        Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         userService.updateOnlineStatus(userId, is_online);
         return RestBean.success("更新成功");
     }

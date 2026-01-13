@@ -1,58 +1,15 @@
 import { ref, computed, watch, onMounted } from 'vue'
 
-// 随机颜色生成函数
-const generateRandomColor = () => {
-  // 生成一个随机的主色调 (HSL)
-  const hue = Math.floor(Math.random() * 360);
-  // 设置固定的饱和度和亮度，确保颜色美观
-  const saturation = 70;
-  const lightness = 55;
-  
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-};
-
 // 从localStorage获取主题设置，如果没有则默认使用暗色主题
 const isDark = ref(localStorage.getItem('theme') === 'dark' ||
   (localStorage.getItem('theme') === null && window.matchMedia('(prefers-color-scheme: dark)').matches) ||
   false)
 
-// 生成随机主色调
-const randomPrimaryColor = ref(generateRandomColor());
-
-// 根据随机主色调生成主题配置
-const generateTheme = (dark = false) => {
-  const baseTheme = dark ? darkThemeBase : lightThemeBase;
-  
-  // 生成基于随机主色调的主题
-  const theme = JSON.parse(JSON.stringify(baseTheme));
-  
-  // 更新主色调
-  theme.colors.primary = randomPrimaryColor.value;
-  
-  // 从HSL颜色值中提取色相、饱和度和亮度
-  const hslMatch = randomPrimaryColor.value.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-  if (hslMatch) {
-    const [, hue, saturation, lightness] = hslMatch;
-    
-    // 创建半透明的HSLA颜色
-    theme.effects.glow = `0 0 20px hsla(${hue}, ${saturation}%, ${lightness}%, 0.3)`;
-    theme.effects.glowLg = `0 0 40px hsla(${hue}, ${saturation}%, ${lightness}%, 0.4)`;
-    
-    // 生成与主色调相关的辅助色，使主题变化更明显
-    const secondaryHue = (parseInt(hue) + 60) % 360;
-    const accentHue = (parseInt(hue) + 120) % 360;
-    theme.colors.secondary = `hsl(${secondaryHue}, ${saturation}%, ${lightness}%)`;
-    theme.colors.accent = `hsl(${accentHue}, ${saturation}%, ${lightness}%)`;
-  }
-  
-  return theme;
-};
-
-// 基础主题配置（不包含随机颜色）
-const lightThemeBase = {
+// 主题配置
+const lightTheme = {
   name: 'light',
   colors: {
-    primary: '#3b82f6', // 默认颜色，会被随机颜色替换
+    primary: '#3b82f6',
     secondary: '#8b5cf6',
     accent: '#06b6d4',
     success: '#10b981',
@@ -93,10 +50,10 @@ const lightThemeBase = {
   }
 }
 
-const darkThemeBase = {
+const darkTheme = {
   name: 'dark',
   colors: {
-    primary: '#60a5fa', // 默认颜色，会被随机颜色替换
+    primary: '#60a5fa',
     secondary: '#a78bfa',
     accent: '#22d3ee',
     success: '#34d399',
@@ -137,12 +94,8 @@ const darkThemeBase = {
   }
 }
 
-// 主题配置（基于随机主色调）
-const lightTheme = ref(generateTheme(false));
-const darkTheme = ref(generateTheme(true));
-
 // 当前主题
-const currentTheme = computed(() => isDark.value ? darkTheme.value : lightTheme.value)
+const currentTheme = computed(() => isDark.value ? darkTheme : lightTheme)
 
 // 切换主题
 const toggleTheme = () => {
@@ -158,22 +111,6 @@ const setTheme = (theme) => {
   // 保存到localStorage
   localStorage.setItem('theme', theme)
   updateDocumentTheme()
-}
-
-// 重置随机主题
-const resetRandomTheme = () => {
-  console.log('🔄 重置随机主题');
-  // 生成新的随机主色调
-  randomPrimaryColor.value = generateRandomColor();
-  console.log('🎨 新的随机主色调:', randomPrimaryColor.value);
-  
-  // 更新主题
-  lightTheme.value = generateTheme(false);
-  darkTheme.value = generateTheme(true);
-  
-  // 应用更新
-  updateDocumentTheme();
-  console.log('✅ 随机主题已更新');
 }
 
 // 初始化主题
@@ -302,7 +239,6 @@ export {
   currentTheme,
   toggleTheme,
   setTheme,
-  resetRandomTheme,
   animations,
   glassMorphism,
   gradients,

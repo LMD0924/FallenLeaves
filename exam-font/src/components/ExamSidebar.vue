@@ -1,6 +1,6 @@
 <script setup>
 import {ref, onMounted, onUnmounted, computed, watch} from 'vue'
-import { isDark, toggleTheme, currentTheme, resetRandomTheme } from '@/stores/theme.js'
+import { isDark, toggleTheme, currentTheme } from '@/stores/theme.js'
 import router from "@/router/index.js";
 import {get} from "@/net/index.js";
 import { useNotification } from '@/services/notificationService'
@@ -236,35 +236,9 @@ const navSections = ref([
   {
     label: '考试中心',
     items: [
-      {
-        id: 'exam_manage',
-        icon: '📝',
-        text: '考试管理',
-        roles: ['管理员', '教师'],
-        children: [
-          {
-            id: 'CreateExam',
-            icon: '📋',
-            text: '考试列表',
-            roles: ['管理员', '教师'],
-            path: '/CreateExam'
-          },
-          {
-            id: 'CreateExam',
-            icon: '➕',
-            text: '创建考试',
-            roles: ['管理员', '教师'],
-            path: '/CreateExam'
-          },
-          {
-            id: 'CreateExam',
-            icon: '📄',
-            text: '试卷管理',
-            roles: ['管理员', '教师'],
-            path: '/CreateExam'
-          }
-        ]
-      },
+      {        id: 'exam_manage',        icon: '📝',        text: '考试管理',        roles: ['管理员', '教师'],        children: [          {            id: 'exam_list',            icon: '📋',            text: '考试列表',            roles: ['管理员', '教师'],            path: '/CreateExam'          },          {            id: 'create_exam',            icon: '➕',            text: '创建考试',            roles: ['管理员', '教师'],            path: '/CreateExam'          },          {            id: 'paper_manage',            icon: '📄',            text: '试卷管理',            roles: ['管理员', '教师'],            path: '/CreateExam'          }        ]      },
+      {        id: 'exam_record',        icon: '📋',        text: '考试记录',        roles: ['管理员', '教师'],        path: '/ExamRecord'      },
+      {        id: 'grade_exam',        icon: '✍️',        text: '考试批阅',        roles: ['管理员', '教师'],        path: '/GradeExam'      },
       {
         id: 'QuestionType',
         icon: '🧮',
@@ -272,35 +246,7 @@ const navSections = ref([
         roles: ['管理员', '教师'],
         path: '/QuestionType'
       },
-      {
-        id: 'CreateExam',
-        icon: '🎯',
-        text: '我的考试',
-        roles: ['学生'],
-        children: [
-          {
-            id: 'CreateExam',
-            icon: '📋',
-            text: '可参加考试',
-            roles: ['学生'],
-            path: '/CreateExam'
-          },
-          {
-            id: 'CreateExam',
-            icon: '🕐',
-            text: '考试历史',
-            roles: ['学生'],
-            path: '/CreateExam'
-          },
-          {
-            id: 'GradeCenter',
-            icon: '📊',
-            text: '成绩查询',
-            roles: ['学生'],
-            path: '/GradeCenter'
-          }
-        ]
-      }
+      {        id: 'my_exams',        icon: '🎯',        text: '我的考试',        roles: ['学生'],        children: [          {            id: 'available_exams',            icon: '📋',            text: '可参加考试',            roles: ['学生'],            path: '/CreateExam'          },          {            id: 'exam_history',            icon: '🕐',            text: '考试历史',            roles: ['学生'],            path: '/CreateExam'          },          {            id: 'grade_center',            icon: '📊',            text: '成绩查询',            roles: ['学生'],            path: '/GradeCenter'          }        ]      }
     ]
   },
   {
@@ -538,9 +484,6 @@ const getUserInfo = () => {
       initSidebarNotifications()
       requestNotificationPermission()
 
-      // 每次登录时重置主题颜色
-      resetRandomTheme()
-
       // 保留直接获取最新消息的逻辑，作为WebSocket的补充
       setTimeout(() => {
         console.log('⏰ 延迟执行获取最新消息')
@@ -707,12 +650,12 @@ onUnmounted(() => {
                 :class="[
                   'group relative mx-4 mb-2 px-4 py-3 rounded-xl transition-all duration-500 cursor-pointer border menu-item-card',
                   isDark
-                    ? 'border-gray-800 hover:border-[var(--color-primary)]/50 hover:bg-gray-900 text-gray-300'
-                    : 'border-gray-200/80 hover:border-[var(--color-primary)]/50 hover:bg-white/80 text-gray-600',
+                    ? 'border-gray-800 hover:border-purple-500/50 hover:bg-gray-900 text-gray-300'
+                    : 'border-gray-200/80 hover:border-purple-400/50 hover:bg-white/80 text-gray-600',
                   isActiveItem(item)
                     ? (isDark
-                        ? 'bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-secondary)]/20 border-[var(--color-primary)] text-white shadow-lg shadow-[var(--color-primary)]/20'
-                        : 'bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-secondary)]/10 border-[var(--color-primary)]/80 text-[var(--color-primary)] shadow-lg shadow-[var(--color-primary)]/10')
+                        ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500 text-white shadow-lg shadow-purple-500/20'
+                        : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-400/80 text-purple-700 shadow-lg shadow-purple-500/10')
                     : ''
                 ]"
               >
@@ -721,7 +664,7 @@ onUnmounted(() => {
                     :class="[
                       'w-8 h-8 rounded-xl flex items-center justify-center text-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-12',
                       isActiveItem(item)
-                        ? (isDark ? 'bg-[var(--color-primary)]/30 text-[var(--color-primary)]' : 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]')
+                        ? (isDark ? 'bg-purple-500/30 text-purple-300' : 'bg-purple-100 text-purple-600')
                         : (isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500')
                     ]"
                   >
@@ -740,7 +683,7 @@ onUnmounted(() => {
                     v-if="hasChildren(item) && (isSidebarHovered || !isCollapsed)"
                     :class="[
                       'text-xs transition-all duration-500 group-hover:translate-x-1',
-                      isDark ? 'text-gray-600 group-hover:text-[var(--color-primary)]' : 'text-gray-400 group-hover:text-[var(--color-primary)]'
+                      isDark ? 'text-gray-600 group-hover:text-purple-400' : 'text-gray-400 group-hover:text-purple-500'
                     ]"
                   >
                     <i class="fas fa-chevron-right"></i>
@@ -816,7 +759,7 @@ onUnmounted(() => {
             @click="router.push('/ExamUser')"
             :class="[
               'rounded-2xl cursor-pointer w-12 h-12 user-avatar border-2 transition-all duration-500 hover:scale-105',
-              isDark ? 'border-[var(--color-primary)]' : 'border-[var(--color-primary)]/50'
+              isDark ? 'border-purple-500' : 'border-purple-400/50'
             ]"
           >
           <div
@@ -836,7 +779,7 @@ onUnmounted(() => {
             <div
               :class="[
                 'text-xs font-semibold transition-all duration-500 px-2 py-1 rounded-full',
-                isDark ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/20' : 'text-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                isDark ? 'text-purple-300 bg-purple-500/20' : 'text-purple-600 bg-purple-100'
               ]"
             >
               {{ User.role || '用户' }}

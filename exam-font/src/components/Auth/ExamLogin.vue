@@ -72,8 +72,7 @@ const handleRegister = () => {
       registerForm.status = '未审核'
     messageApi.success(message)
     toggleForm()
-  }, (info) => {
-    messageApi.info(info); // 显示错误信息
+  }, () => {
     registerLoading.value = false
   })
 }

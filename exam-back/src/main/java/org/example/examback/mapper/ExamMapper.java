@@ -111,7 +111,7 @@ public interface ExamMapper {
          "WHERE c.teacher_id=#{teacher_id}")
  List<Course> SelectCourseByTeacherId(Integer teacher_id);
  //根据课程id修改
- @Update("update xm_course set name=#{name},score=#{score},status=#{status},teacher_name=#{teacher_name} where id=#{id}")
+ @Update("update xm_course set name=#{name},score=#{score},status=#{status} where id=#{id}")
  int UpdateCourse(Course course);
  //----------------------有关题目--------------------------------------------------
 
@@ -161,15 +161,15 @@ public interface ExamMapper {
  int ExitClass(Integer id);
 @Update("update xm_class set size=COALESCE(size, 0)-1 where id=#{id}")
 int UpdateClassSizeExit(Integer id);
-//根据id查询班级
+ //根据id查询班级
     @Select("select * from xm_class where id=#{id}")
-    ExamClass SelectClassById(Integer id);
+ ExamClass SelectClassById(Integer id);
  //---------------------有关试卷--------------------------------------------------
  //添加试卷
  @Insert("insert into xm_exam (title,description,course_id,teacher_id,total_score,duration,start_time,end_time,pass_score,status) values(#{title},#{description},#{course_id},#{teacher_id},#{total_score},#{duration},#{start_time},#{end_time},#{pass_score},#{status})")
  int InsertExam(Exam exam);
  //修改试卷
- @Update("update xm_exam set title=#{title},description=#{description},course_id=#{course_id},teacher_id=#{teacher_id},total_score=#{total_score},duration=#{duration},start_time=#{start_time},end_time=#{end_time},pass_score=#{pass_score},status=#{status},total_score=#{total_score} where id=#{id}")
+ @Update("update xm_exam set title=#{title},description=#{description},course_id=#{course_id},teacher_id=#{teacher_id},total_score=#{total_score},duration=#{duration},start_time=#{start_time},end_time=#{end_time},pass_score=#{pass_score},status=#{status} where id=#{id}")
  int UpdateExam(Exam exam);
  //查询所有试卷
  @Select("select * from xm_exam")
@@ -210,7 +210,6 @@ int UpdateClassSizeExit(Integer id);
          "qt.answer, " +
          "qt.knowledge, " +
          "qt.difficulty, " +
-         "qt.score, " +
          "e.title AS exam_title, " +
          "e.description AS exam_description, " +
          "e.total_score AS exam_total_score, " +
@@ -222,8 +221,8 @@ int UpdateClassSizeExit(Integer id);
          "WHERE eq.exam_id = #{examId} " +
          "ORDER BY eq.question_order ASC")
  List<ExamQuestionVO> getExamQuestionsByExamId(@Param("examId") Integer examId);
- //根据试卷id删除题目
- @Delete("delete from xm_exam_question where exam_id=#{exam_id} and question_id=#{question_id}")
+    //根据试卷id删除题目
+    @Delete("delete from xm_exam_question where exam_id=#{exam_id} and question_id=#{question_id}")
  Integer DeleteExamQuestion(Integer exam_id,Integer question_id);
  //------------------------有关请假------------------------------------------
  //添加请假记录

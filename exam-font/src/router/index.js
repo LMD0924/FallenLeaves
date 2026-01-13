@@ -41,6 +41,16 @@ const router = createRouter({
           component:()=>import('@/views/exam/Exam.vue')
         },
         {
+          path:'/ExamRecord',
+          name:'考试记录',
+          component:()=>import('@/views/exam/ExamRecord.vue')
+        },
+        {
+          path:'/GradeExam',
+          name:'考试批阅',
+          component:()=>import('@/views/exam/GradeExam.vue')
+        },
+        {
           path:"/ExamUser",
           name:"考试个人信息",
           component:()=>import('@/views/exam/ExamUser.vue')
@@ -80,8 +90,14 @@ const router = createRouter({
           name:"学生端 - 个人成绩中心",
           component:()=>import('@/views/exam/GradeCenter.vue')
         },
+        {
+          path:'/wall',
+          name:'留言墙',
+          component:()=>import('@/views/Wall.vue')
+        }
       ]
     },
+
   ],
 })
 //修改网页名
@@ -90,7 +106,7 @@ router.beforeEach((to, from, next)=>
   const userStore = userUserStore()
   const publicMap = new Map()
   publicMap.set('/', 1)
-//  publicMap.set('/share', 2)
+  //publicMap.set('/wall', 2)
   publicMap.set('/error/401', 3)
   publicMap.set('/error/404', 4)
   // 检查要访问的路径是否是根路径

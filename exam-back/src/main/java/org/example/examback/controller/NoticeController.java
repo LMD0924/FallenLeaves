@@ -28,20 +28,32 @@ public class NoticeController {
     public RestBean<String> InsertNotice(Notice notice,
                                          HttpServletRequest request){
         if(notice.getUserId()==null) return RestBean.failure(404,"请先登录");
-        int userId=(int) request.getAttribute("id");
+        Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         if(user.getRole().equals("管理员")){
             noticeService.InsertNotice(notice);
             return RestBean.success("发布成功",null);
-        }else return RestBean.failure(404,"暂无权限发布消息");
+        }else return RestBean.failure(403,"暂无权限发布消息");
     }
     //获取自己发布的消息
     @GetMapping("/SelectNoticeById")
     public RestBean<List<Notice>> SelectNoticeById(@RequestParam("id") Integer id,
                                                    HttpServletRequest request){
-        int userId=(int) request.getAttribute("id");
-        if(userId==id) return RestBean.success("获取成功",noticeService.SelectNoticeById(id));
-        else return RestBean.failure(404,"暂无权限获取消息");
+        Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
+        if(id == null) {
+            return RestBean.failure(400,"参数错误：id不能为空");
+        }
+        if(userId.equals(id)) return RestBean.success("获取成功",noticeService.SelectNoticeById(id));
+        else return RestBean.failure(403,"暂无权限获取消息");
     }
     //获取所有消息
     @GetMapping("SelectAllNotice")
@@ -52,11 +64,17 @@ public class NoticeController {
     @PostMapping("UpdateNotice")
     public RestBean<String> UpdateNotice(Notice notice,
                                          HttpServletRequest request){
-        int userId=(int) request.getAttribute("id");
+        Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
         User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
         if(user.getRole().equals("管理员")){
             noticeService.UpdateNotice(notice);
             return RestBean.success("修改成功",null);
-        }else return RestBean.failure(404,"暂无权限修改消息");
+        }else return RestBean.failure(403,"暂无权限修改消息");
     }
 }

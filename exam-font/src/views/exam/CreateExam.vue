@@ -172,23 +172,34 @@ watch(questionSearch, (value) => {
 // 添加题目到试卷
 const addQuestionToExam = (question) => {
   if (!examForm.value.questions.some(q => q.id === question.id)) {
-    // 发送添加试卷题目请求
-    post('api/exam/InsertExamQuestion', {
-      exam_id: examForm.value.id,
-      question_id: question.id
-    }, (message, data) => {
-      if (data) {
-        examForm.value.questions.push({
-          ...question,
-          score: 5,
-          question_order: examForm.value.questions.length + 1
-        })
-        updateTotalScore()
-        messageApi.success('题目添加成功')
-      } else {
-        messageApi.error('添加失败')
-      }
-    })
+    // 如果是编辑模式且有exam_id，则发送请求到后端
+    if (examForm.value.id && editingExam.value) {
+      post('api/exam/InsertExamQuestion', {
+        exam_id: examForm.value.id,
+        question_id: question.id
+      }, (message, data) => {
+        if (data) {
+          examForm.value.questions.push({
+            ...question,
+            score: question.score || 5,
+            question_order: examForm.value.questions.length + 1
+          })
+          updateTotalScore()
+          messageApi.success('题目添加成功')
+        } else {
+          messageApi.error('添加失败')
+        }
+      })
+    } else {
+      // 如果是新建模式，直接添加到本地列表
+      examForm.value.questions.push({
+        ...question,
+        score: question.score || 5,
+        question_order: examForm.value.questions.length + 1
+      })
+      updateTotalScore()
+      messageApi.success('题目添加成功')
+    }
   } else {
     messageApi.warning('题目已存在')
   }
@@ -325,14 +336,19 @@ const validateForm = () => {
 }
 
 // 保存试卷
-const saveExam = () => {
+const saveExam = async () => {
   if (!validateForm()) {
     return
   }
 
+  // 确保已获取用户信息
+  if (!User.value.id) {
+    await getUser()
+  }
+  
   const requestData = {
     ...examForm.value,
-    teacher_id: examForm.value.course_id,
+    teacher_id: User.value.id, // 使用当前登录用户的ID作为teacher_id
     questions: examForm.value.questions.map(q => ({
       question_id: q.id,
       score: q.score,
