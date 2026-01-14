@@ -11,7 +11,7 @@ spring:
   ai:
     openai:
       base-url: https://yinli.one/
-      api-key: sk-HhDe9LTWQRl8XevaB6IO4Qmr4oWdLhlgx9ATDZbtvhF1Ys6i
+      api-key: 填写你的密钥
       chat:
         options:
           model: gpt-3.5-turbo
