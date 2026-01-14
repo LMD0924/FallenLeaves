@@ -304,15 +304,15 @@ const createOrGetExamRecord = (examId) => {
 // 创建考试记录
 const createExamRecord = (examId) => {
   return new Promise((resolve, reject) => {
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
     const recordData = {
       examId: examId,
       studentId: User.value.id,
-      startTime: now,
-      status: '进行中',
+      startTime:new Date().toISOString(),
+      // 使用统一的英文状态编码，便于前后端统一处理
+      status: 'in_progress',
       attemptCount: 1
     }
-    
+
     post('/api/exam/record/insert', recordData,
       (message, data) => {
         console.log('创建考试记录成功:', data)
@@ -364,7 +364,7 @@ const isMarked = (idx) => {
 /* ---------- 交卷功能 ---------- */
 const submitPaper = () => {
   if (submitting.value || examLoading.value) return
-  
+
   // 确认提交
   Modal.confirm({
     title: '确认交卷',
@@ -391,7 +391,7 @@ const submitPaper = () => {
       console.log('提交数据:', submitData)
 
       // 实际提交接口
-      post('/api/exam/record/submit-paper', submitData, 
+      post('/api/exam/record/submit-paper', submitData,
         (msg) => {
           message.success(msg || '提交成功！')
           // 清除计时器
@@ -404,11 +404,11 @@ const submitPaper = () => {
             localStorage.removeItem(`exam_${route.query.examId}_answer_${key}`)
           })
 
-          // 跳转到考试记录页面
+          // 跳转到“我的考试/试卷列表”页面
           setTimeout(() => {
-            router.push('/exam/ExamRecord')
+            router.push('/CreateExam')
           }, 1500)
-        }, 
+        },
         (error) => {
           message.error('提交失败: ' + (error.message || '网络错误'))
           submitting.value = false

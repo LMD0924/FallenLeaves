@@ -414,18 +414,65 @@ onMounted(() => {
   fetchExams()
 })
 
-// 开始考试
-const startExam = (exam) => {
-  if (exam.status === 'published') {
-    router.push({
-      path: '/Exam',
-      query: {
-        examId: exam.id
-      }
+// 学生考试状态映射：examId -> record status（not_started/in_progress/submitted/graded）
+const examRecordStatus = ref({})
+
+// 为学生加载每场考试的个人考试记录状态
+const loadStudentExamStatus = async () => {
+  if (User.value.role !== '学生' || !exams.value.length) return
+
+  const statusMap = {}
+  const requests = exams.value.map(exam => {
+    return new Promise((resolve) => {
+      get('/api/exam/record/find', { examId: exam.id },
+        (msg, data) => {
+          if (data && data.status) {
+            statusMap[exam.id] = data.status
+          }
+          resolve()
+        },
+        () => resolve() // 404 等情况直接忽略
+      )
     })
-  } else {
+  })
+
+  await Promise.all(requests)
+  examRecordStatus.value = statusMap
+}
+
+// 获取某场考试在当前学生下的显示状态
+const getStudentExamStatusText = (exam) => {
+  const status = examRecordStatus.value[exam.id]
+  if (!status) return '开始考试'
+  if (status === 'submitted') return '已提交'
+  if (status === 'graded') return '已批改'
+  if (status === 'in_progress') return '继续考试'
+  return '开始考试'
+}
+
+const isExamButtonDisabled = (exam) => {
+  const status = examRecordStatus.value[exam.id]
+  return status === 'submitted' || status === 'graded'
+}
+
+// 开始 / 继续考试
+const startExam = (exam) => {
+  if (exam.status !== 'published') {
     messageApi.warning('该考试未发布，无法开始')
+    return
   }
+
+  if (isExamButtonDisabled(exam)) {
+    messageApi.info('该考试已提交或已批改')
+    return
+  }
+
+  router.push({
+    path: '/Exam',
+    query: {
+      examId: exam.id
+    }
+  })
 }
 </script>
 
@@ -772,9 +819,13 @@ const startExam = (exam) => {
                 <button
                   v-if="exam.status === 'published'"
                   @click="startExam(exam)"
-                  class="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors"
+                  :disabled="isExamButtonDisabled(exam)"
+                  class="flex-1 px-3 py-2 rounded-lg transition-colors"
+                  :class="isExamButtonDisabled(exam)
+                    ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed'
+                    : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'"
                 >
-                  开始考试
+                  {{ getStudentExamStatusText(exam) }}
                 </button>
               </template>
               <!-- 教师和管理员显示编辑和删除按钮 -->

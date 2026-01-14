@@ -21,6 +21,7 @@ public class ExamAnswerServiceImpl implements ExamAnswerService {
 
     @Override
     public int insertBatch(List<ExamAnswer> list) {
+        System.out.println("ExamAnswerServiceImpl.insertBatch: 插入" + list.size() + "条答案数据");
         return examAnswerMapper.insertBatch(list);
     }
 

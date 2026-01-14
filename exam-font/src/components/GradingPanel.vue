@@ -232,7 +232,8 @@ const loadData = async () => {
   try {
     // 加载学生信息
     await new Promise((resolve, reject) => {
-      get('/api/exam/current', { id: props.studentId },
+      // 使用用户接口按ID获取学生信息
+      get('/api/user/getUserById', { id: props.studentId },
         (msg, data) => {
           Object.assign(studentInfo, data)
           resolve(data)
@@ -256,17 +257,17 @@ const loadData = async () => {
     await new Promise((resolve, reject) => {
       get('/api/exam/getExamQuestionsByExamId', { exam_id: props.examId },
         (msg, questionData) => {
-          // 加载学生答案
-          get('/api/exam/answer/record', { recordId: props.examRecordId },
+          // 加载学生答案（根据考试记录ID）
+          get('/api/exam/answer/record', { examRecordId: props.examRecordId },
             (msg, answerData) => {
               // 合并题目和答案
               const combinedQuestions = questionData.map(question => {
                 const studentAnswer = answerData.find(a => a.questionId === question.id)
                 return {
                   ...question,
-                  student_answer: studentAnswer?.answer || '',
+                  student_answer: studentAnswer?.studentAnswer || '',
                   obtained_score: studentAnswer?.score || 0,
-                  comment: studentAnswer?.comment || '',
+                  comment: studentAnswer?.teacherComment || '',
                   graded: !!studentAnswer?.score,
                   saving: false
                 }
@@ -300,9 +301,13 @@ const saveQuestionScore = async (question) => {
   question.saving = true
   try {
     await new Promise((resolve, reject) => {
-      // 查找对应的答案对象
-      const answer = { id: question.id, score: question.obtained_score || 0, comment: question.comment || '' }
-      post('/api/exam/answer/update-score', answer,
+      const payload = { 
+        examRecordId: props.examRecordId,
+        questionId: question.id, 
+        score: question.obtained_score || 0, 
+        comment: question.comment || '' 
+      }
+      post('/api/exam/answer/save-score', payload,
         (msg) => {
           message.success('保存成功')
           question.graded = true
@@ -324,13 +329,16 @@ const saveAllScores = async () => {
   savingAll.value = true
   try {
     const scores = questions.value.map(q => ({
-      id: q.id,
+      question_id: q.id,
       score: q.obtained_score || 0,
       comment: q.comment || ''
     }))
 
     await new Promise((resolve, reject) => {
-      post('/api/exam/answer/batch-update-score', scores,
+      post('/api/exam/answer/save-all-scores', {
+          examRecordId: props.examRecordId,
+          scores: scores
+        },
         (msg) => {
           message.success('全部保存成功')
           // 标记所有题目为已批改
@@ -369,16 +377,19 @@ const doCompleteGrading = async () => {
     await new Promise((resolve, reject) => {
       // 先保存所有分数
       const scores = questions.value.map(q => ({
-        id: q.id,
+        question_id: q.id,
         score: q.obtained_score || 0,
         comment: q.comment || ''
       }))
 
-      post('/api/exam/answer/batch-update-score', scores,
+      post('/api/exam/answer/save-all-scores', {
+          examRecordId: props.examRecordId,
+          scores: scores
+        },
         (msg) => {
           // 更新考试记录总分和状态
           post('/api/exam/record/complete-grading', {
-              recordId: props.examRecordId,
+              examRecordId: props.examRecordId,
               totalScore: currentScore.value
             },
             (msg) => {

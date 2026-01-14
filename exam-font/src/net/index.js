@@ -133,24 +133,59 @@ function handleResponse(data, successCallback, failureCallback) {
   }
 }
 
-// 对象转URL参数
+// 对象转URL参数，支持嵌套对象和数组（生成形如 answers[0][questionId] 的键）
 function objectToURLSearchParams(obj) {
   const params = new URLSearchParams();
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      params.append(key, obj[key]);
+
+  function buildParams(prefix, value) {
+    if (value === null || value === undefined) {
+      params.append(prefix, '');
+    } else if (Array.isArray(value)) {
+      value.forEach((item, index) => {
+        buildParams(`${prefix}[${index}]`, item);
+      });
+    } else if (typeof value === 'object') {
+      for (const key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) {
+          buildParams(`${prefix}[${key}]`, value[key]);
+        }
+      }
+    } else {
+      params.append(prefix, value);
     }
   }
+
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      buildParams(key, obj[key]);
+    }
+  }
+
   return params;
 }
 
-// POST 请求
+// POST 请求（默认使用 x-www-form-urlencoded，对部分接口使用 JSON）
 function post(url, data, success, failure = defaultFailure, error = defaultError) {
-  axios.post(url, objectToURLSearchParams(data), {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": getAuthToken()
-    },
+  // 这些接口使用 JSON 提交，后台使用 @RequestBody 接收
+  const useJson =
+    url.startsWith('/api/exam/answer/') &&
+    (url.includes('/save-score') || url.includes('/save-all-scores') || url.includes('/batch-update-score'));
+
+  const headers = {
+    "Authorization": getAuthToken()
+  };
+
+  let payload;
+  if (useJson) {
+    headers["Content-Type"] = "application/json";
+    payload = data;
+  } else {
+    headers["Content-Type"] = "application/x-www-form-urlencoded";
+    payload = objectToURLSearchParams(data);
+  }
+
+  axios.post(url, payload, {
+    headers,
     withCredentials: true
   }).then(({data}) => {
     handleResponse(data, success, failure);

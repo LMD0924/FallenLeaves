@@ -39,16 +39,16 @@ public interface ExamRecordMapper {
     // 查询考试记录总数（用于分页）- 修复版
     @Select("<script>" +
             "SELECT COUNT(*) FROM xm_exam_record rer " +
-            "LEFT JOIN xm_user u ON rer.student_id = u.id " +
+            "LEFT JOIN user u ON rer.student_id = u.id " +
             "<where>" +
             "  <if test='examId != null'>" +
             "    AND rer.exam_id = #{examId}" +
             "  </if>" +
-            "  <if test='status != null and status != \"\"'>" +
+            "  <if test='status != null and status != &quot;&quot;'>" +
             "    AND rer.status = #{status}" +
             "  </if>" +
-            "  <if test='search != null and search != \"\"'>" +
-            "    AND (u.username LIKE CONCAT('%', #{search}, '%') OR u.real_name LIKE CONCAT('%', #{search}, '%'))" +
+            "  <if test='search != null and search != &quot;&quot;'>" +
+            "    AND u.username LIKE CONCAT('%', #{search}, '%')" +
             "  </if>" +
             "</where>" +
             "</script>")
@@ -58,19 +58,19 @@ public interface ExamRecordMapper {
 
     // 分页查询考试记录 - 修复版
     @Select("<script>" +
-            "SELECT rer.*, u.username, u.real_name, e.title AS exam_title " +
+            "SELECT rer.*, u.username, e.title AS exam_title " +
             "FROM xm_exam_record rer " +
-            "LEFT JOIN xm_user u ON rer.student_id = u.id " +
+            "LEFT JOIN user u ON rer.student_id = u.id " +
             "LEFT JOIN xm_exam e ON rer.exam_id = e.id " +
             "<where>" +
             "  <if test='examId != null'>" +
             "    AND rer.exam_id = #{examId}" +
             "  </if>" +
-            "  <if test='status != null and status != \"\"'>" +
+            "  <if test='status != null and status != &quot;&quot;'>" +
             "    AND rer.status = #{status}" +
             "  </if>" +
-            "  <if test='search != null and search != \"\"'>" +
-            "    AND (u.username LIKE CONCAT('%', #{search}, '%') OR u.real_name LIKE CONCAT('%', #{search}, '%'))" +
+            "  <if test='search != null and search != &quot;&quot;'>" +
+            "    AND u.username LIKE CONCAT('%', #{search}, '%')" +
             "  </if>" +
             "</where>" +
             "ORDER BY rer.created_at DESC " +

@@ -123,7 +123,7 @@ public class ExamRecordServiceImpl implements ExamRecordService {
                 }
             }
             
-            // 3. 更新考试记录状态为已提交
+            // 3. 更新考试记录状态为已提交（submitted）
             LocalDateTime now = LocalDateTime.now();
             int timeSpent = calculateTimeSpent(record.getStartTime(), now);
             
@@ -131,7 +131,7 @@ public class ExamRecordServiceImpl implements ExamRecordService {
             examRecordMapper.updateTime(record.getId(), now, timeSpent);
             
             // 5. 更新考试状态
-            examRecordMapper.updateStatusAndScore(record.getId(), "已提交", null);
+            examRecordMapper.updateStatusAndScore(record.getId(), "submitted", null);
             
             logger.info("提交试卷成功，recordId: " + record.getId());
             return true;
@@ -176,7 +176,7 @@ public class ExamRecordServiceImpl implements ExamRecordService {
     public boolean completeGrading(Integer examRecordId, Integer totalScore) {
         logger.info("调用completeGrading方法，examRecordId: " + examRecordId + " totalScore: " + totalScore);
         try {
-            return examRecordMapper.updateStatusAndScore(examRecordId, "已批改", totalScore) > 0;
+            return examRecordMapper.updateStatusAndScore(examRecordId, "graded", totalScore) > 0;
         } catch (Exception e) {
             logger.severe("完成批改失败: " + e.getMessage());
             e.printStackTrace();

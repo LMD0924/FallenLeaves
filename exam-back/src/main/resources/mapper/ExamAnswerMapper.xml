@@ -28,7 +28,7 @@
             #{item.questionId},
             #{item.studentId},
             #{item.examId},
-            #{item.studentAnswer, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+            #{item.studentAnswer},
             #{item.score},
             #{item.isCorrect},
             #{item.teacherComment},

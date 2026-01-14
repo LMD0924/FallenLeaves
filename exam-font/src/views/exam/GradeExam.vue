@@ -279,7 +279,8 @@ const loadData = async () => {
 // 加载学生信息
 const loadStudentInfo = () => {
   return new Promise((resolve, reject) => {
-    get('/api/exam/current', { id: studentId.value },
+    // 使用用户接口按ID获取学生信息
+    get('/api/user/getUserById', { id: studentId.value },
       (msg, data) => {
         Object.assign(studentInfo, data)
         resolve(data)
@@ -321,7 +322,7 @@ const loadQuestionsAndAnswers = () => {
     // 加载题目
     get('/api/exam/getExamQuestionsByExamId', { exam_id: examId.value },
       (msg, questionData) => {
-        // 加载学生答案
+        // 加载学生答案（根据考试记录ID）
         get('/api/exam/answer/record', { examRecordId: examRecordId.value },
           (msg, answerData) => {
             // 合并题目和答案
@@ -329,9 +330,9 @@ const loadQuestionsAndAnswers = () => {
               const studentAnswer = answerData.find(a => a.questionId === question.id)
               return {
                 ...question,
-                student_answer: studentAnswer?.answer || '',
+                student_answer: studentAnswer?.studentAnswer || '',
                 obtained_score: studentAnswer?.score || 0,
-                comment: studentAnswer?.comment || '',
+                comment: studentAnswer?.teacherComment || '',
                 graded: !!studentAnswer?.score,
                 saving: false
               }
@@ -518,7 +519,7 @@ const doCompleteGrading = async () => {
             (msg) => {
               message.success('批改完成')
               // 跳转到考试记录列表
-              router.push('/exam/ExamRecord')
+              router.push('/ExamRecord')
               resolve()
             },
             reject
@@ -537,7 +538,7 @@ const doCompleteGrading = async () => {
 
 // 返回记录列表
 const goToRecordList = () => {
-  router.push('/exam/ExamRecord')
+  router.push('/ExamRecord')
 }
 
 // 监听路由参数变化

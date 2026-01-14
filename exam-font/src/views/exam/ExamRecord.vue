@@ -513,7 +513,7 @@ const router = useRouter()
 const startGrading = (record) => {
   // 跳转到独立的批改页面
   router.push({
-    path: '/exam/GradeExam',
+    path: '/GradeExam',
     query: {
       recordId: record.id,
       studentId: record.student_id,

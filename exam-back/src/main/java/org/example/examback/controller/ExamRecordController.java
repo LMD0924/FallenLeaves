@@ -7,6 +7,8 @@ import org.example.examback.entity.RestBean;
 import org.example.examback.service.ExamRecordService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +63,7 @@ public class ExamRecordController {
      * 插入考试记录
      */
     @PostMapping("/insert")
-    public RestBean<Integer> insert(@RequestBody ExamRecord examRecord) {
+    public RestBean<Integer> insert(@ModelAttribute ExamRecord examRecord) {
         try {
             int result = examRecordService.insert(examRecord);
             if (result > 0) {
@@ -117,10 +119,53 @@ public class ExamRecordController {
     @PostMapping("/submit-paper")
     public RestBean<Boolean> submitPaper(
             @RequestParam Integer paperId,
-            @RequestBody List<Map<String, Object>> answers,
             HttpServletRequest request) {
         try {
             Integer userId = (Integer) request.getAttribute("id");
+            
+            // 获取所有请求参数
+            Map<String, String[]> parameterMap = request.getParameterMap();
+            
+            // 解析answers参数
+            List<Map<String, Object>> answers = new ArrayList<>();
+            Map<Integer, Map<String, Object>> tempAnswers = new HashMap<>();
+            
+            for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+                String key = entry.getKey();
+                String[] values = entry.getValue();
+                
+                // 匹配answers[0][questionId]这样的格式
+                if (key.startsWith("answers[")) {
+                    String pattern = "answers\\[(\\d+)\\]\\[(\\w+)\\]";
+                    java.util.regex.Pattern r = java.util.regex.Pattern.compile(pattern);
+                    java.util.regex.Matcher m = r.matcher(key);
+                    
+                    if (m.matches()) {
+                        int index = Integer.parseInt(m.group(1));
+                        String field = m.group(2);
+                        String value = values[0];
+                        
+                        // 确保该索引的Map存在
+                        tempAnswers.putIfAbsent(index, new HashMap<>());
+                        Map<String, Object> answerMap = tempAnswers.get(index);
+                        
+                        // 处理questionId为数字
+                        if (field.equals("questionId")) {
+                            answerMap.put(field, Integer.parseInt(value));
+                        } else {
+                            answerMap.put(field, value);
+                        }
+                    }
+                }
+            }
+            
+            // 将tempAnswers转换为List
+            for (int i = 0; i < tempAnswers.size(); i++) {
+                if (tempAnswers.containsKey(i)) {
+                    answers.add(tempAnswers.get(i));
+                }
+            }
+            
             boolean result = examRecordService.submitPaper(paperId, userId, answers);
             if (result) {
                 return RestBean.success("提交试卷成功", true);
