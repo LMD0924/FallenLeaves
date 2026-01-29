@@ -4,17 +4,20 @@ package org.example.examback.controller;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.RestBean;
 import org.example.examback.entity.User;
 import org.example.examback.service.UserService;
 import org.example.examback.util.FileUploadUtil;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import java.util.Date;
 import java.util.List;
-
+@Slf4j
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -92,7 +95,7 @@ public class UserController {
     }
     //更改个人信息
         @PostMapping("/updateUser")
-        public RestBean<String> updateUser(@ModelAttribute User user,
+        public RestBean<String> updateUser(@ModelAttribute @Valid User user,
                                            HttpServletRequest request){
             Integer userId=(Integer) request.getAttribute("id");
             if(userId == null) {
@@ -123,4 +126,10 @@ public class UserController {
         userService.updateOnlineStatus(userId, is_online);
         return RestBean.success("更新成功");
     }
+    @ExceptionHandler(Exception.class)
+    public RestBean<String> exceptionHandler(Exception ex){
+        log.error("系统异常：", ex);  // 记录完整异常堆栈
+        return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
+    }
+
 }

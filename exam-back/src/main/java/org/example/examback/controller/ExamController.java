@@ -2,6 +2,7 @@ package org.example.examback.controller;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.Course;
 import org.example.examback.entity.RestBean;
 import org.example.examback.entity.User;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-
+@Slf4j
 @RestController
 @RequestMapping("api/exam")
 public class ExamController {
@@ -27,26 +28,7 @@ public class ExamController {
     UserService userService;
     @Resource
     FileUploadUtil fileUploadUtil;
-    //获取自己的信息
-    @GetMapping("/current")
-    public RestBean<User> SelectById(HttpServletRequest request){
-        Integer userId = (Integer) request.getAttribute("id");
-        if(userId == null) {
-            return RestBean.failure(401,"未登录或token无效");
-        }
-        User result=examService.SelectById(userId);
-        if(result!=null) {
-            result.setPassword("**不给看**");
-            return RestBean.success("获取成功", result);
-        }else return RestBean.failure(404,"获取失败");
-    }
-   //获取所有用户
-    @GetMapping("/AllUser")
-    public RestBean<List<User>> AllUser(){
-        List<User> list=examService.AllUser();
-        if(list!=null) return RestBean.success("获取成功",list);
-        else return RestBean.failure(404,"获取失败");
-    }
+
    //获取所有教师和学生
     @GetMapping("/AllTeacher")
     public RestBean<List<User>> AllTeacher(){
@@ -63,13 +45,6 @@ public class ExamController {
             user.setPassword("**不给看**");
         }
         return RestBean.success("获取成功",list);
-    }
-    //更新用户信息
-    @PostMapping("/UpdateUserInfo")
-    public RestBean<Integer> UpdateUserInfo(User user){
-        int result=examService.UpdateUserInfo(user);
-        if(result!=0) return RestBean.success("更新成功",result);
-        else return RestBean.failure(404,"更新失败");
     }
     //选择专业
     @PostMapping("UpdateUserProfessional")
@@ -427,4 +402,10 @@ public class ExamController {
             else return RestBean.failure(404,"审核失败");
         }else return RestBean.failure(404,"权限不足");
     }
+    //----------------------------有关异常处理---------------------------------------------------------
+        @ExceptionHandler(Exception.class)
+    public RestBean<String> exceptionHandler(Exception ex){
+        log.error("系统异常：", ex);  // 记录完整异常堆栈
+        return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
+        }
 }

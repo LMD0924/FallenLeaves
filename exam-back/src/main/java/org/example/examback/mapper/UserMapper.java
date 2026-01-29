@@ -25,7 +25,23 @@ public interface UserMapper {
     //更换头像
     @Update("update user set avatar=#{avatar} where id=#{id}")
     void updateAvatar(String avatar,int id);
-    @Update("update user set username=#{username},account=#{account},sex=#{sex},locality=#{locality},general=#{general} where id=#{id}")
+    @Update("update user set username=#{username}," +
+            "account=#{account}," +
+            "password=#{password}," +
+            "sex=#{sex}," +
+            "locality=#{locality}," +
+            "general=#{general}," +
+            "role=#{role}," +
+            "phone=#{phone}," +
+            "email=#{email}," +
+            "status=#{status}," +
+            "follow=#{follow}," +
+            "fans=#{fans}," +
+            "is_online=#{isOnline}," +
+            "professional=#{professional}," +
+            "college=#{college}," +
+            "end_login_time=#{endLoginTime}" +
+            " where id=#{id}")
     void updateUser(User user);
     //关注
     @Update("update user set follow=COALESCE(follow,0)+1 where id=#{userId}")
@@ -40,6 +56,6 @@ public interface UserMapper {
     @Update("update user set fans=GREATEST(COALESCE(fans,0)-1,0) where id=#{followId}")
     int deleteFans(Integer followId);
     //是否在线
-    @Update("update user set is_online=#{is_online} where id=#{id}")
+    @Update("update user set is_online=#{isOnline} where id=#{id}")
     void updateOnlineStatus(Integer id,Boolean is_online);
 }

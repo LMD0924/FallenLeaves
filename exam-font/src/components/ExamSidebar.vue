@@ -49,7 +49,6 @@ const initSidebarNotifications = () => {
   const handlers = {
     // 连接建立
     onConnected: () => {
-      console.log('侧边栏WebSocket连接成功')
       // 连接成功后立即尝试获取最新消息
       setTimeout(() => {
         getLatestNotice()
@@ -58,12 +57,10 @@ const initSidebarNotifications = () => {
 
     // 连接断开
     onDisconnected: () => {
-      console.log('侧边栏WebSocket连接断开')
     },
 
     // 新消息通知
     new_notice: (noticeData) => {
-      console.log('收到新通知:', noticeData)
 
       // 显示新发布的消息
       showLatestNotice(noticeData, '新消息发布')
@@ -81,7 +78,6 @@ const initSidebarNotifications = () => {
 
 // 显示最新消息 - 修复引用问题
 const showLatestNotice = (noticeData, type = '最新消息') => {
-  console.log('🔔 准备显示最新消息:', noticeData)
 
   const notification = {
     id: noticeData.id || Date.now(),
@@ -94,11 +90,8 @@ const showLatestNotice = (noticeData, type = '最新消息') => {
     publisher: noticeData.publisher || '系统'
   }
 
-  console.log('📨 创建的通知对象:', notification)
-
   // 使用正确的引用 ✅
   addNotification(notification)
-  console.log('✅ 通知已添加到队列，当前活跃通知数量:', activeNotifications.value.length)
 
   // 播放提示音
   playNotificationSound()
@@ -136,7 +129,6 @@ const requestNotificationPermission = () => {
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission().then(permission => {
       if (permission === 'granted') {
-        console.log('通知权限已授予')
       }
     })
   }
@@ -145,33 +137,19 @@ const requestNotificationPermission = () => {
 // 获取最新发布的一条消息 - 添加详细日志
 const getLatestNotice = async () => {
   try {
-    console.log('🔍 开始获取最新消息...')
-
     const allNotices = await new Promise((resolve, reject) => {
       get('api/notice/SelectAllNotice', {}, (message, data) => {
-        console.log('📡 API响应:', message)
-        console.log('📦 响应数据长度:', data?.length || 0)
         resolve(data || [])
       }, (error) => {
-        console.error('❌ API错误:', error)
         reject(error)
       })
     })
-
-    console.log('📋 获取到的消息数组长度:', allNotices.length)
-
     if (Array.isArray(allNotices) && allNotices.length > 0) {
       const latestNotice = allNotices[allNotices.length - 1]
-      console.log('⭐ 最新消息:', latestNotice.title)
 
       // 显示最新消息提示
       showLatestNotice(latestNotice, '最新公告')
-
-      console.log('✅ 已触发显示最新消息')
-    } else {
-      console.log('ℹ️ 暂无消息')
     }
-
   } catch (error) {
     console.log('❌ 获取消息列表失败:', error)
   }
@@ -474,11 +452,9 @@ const handleSidebarMouseLeave = () => {
 
 // 获取登录信息 - 添加登录检测
 const getUserInfo = () => {
-  get('api/exam/current', {},
+  get('api/user/current', {},
     (message, data) => {
-      console.log("✅ 用户登录成功:", data.account)
       User.value = data
-      console.log(User.value.avatar)
       // 用户信息获取成功后，初始化通知服务
       initNotificationService()
       initSidebarNotifications()
@@ -486,12 +462,10 @@ const getUserInfo = () => {
 
       // 保留直接获取最新消息的逻辑，作为WebSocket的补充
       setTimeout(() => {
-        console.log('⏰ 延迟执行获取最新消息')
         getLatestNotice()
       }, 1000)
     },
     (error) => {
-      console.error("获取用户信息失败:", error)
       User.value = { name: '未知用户', role: 'guest' }
     }
   )

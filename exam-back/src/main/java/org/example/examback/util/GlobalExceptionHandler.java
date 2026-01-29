@@ -3,10 +3,12 @@ package org.example.examback.util;
 import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.RestBean;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.Objects;
 
 /*
  * @Author:总会落叶
@@ -14,7 +16,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
  * @Description:
  */
 //全局异常处理，处理项目中抛出的业务异常
-@RestControllerAdvice
+@RestControllerAdvice //告诉springmvc这是一个全局异常处理类
 @Slf4j
 public class GlobalExceptionHandler {
     //捕获业务异常
@@ -91,6 +93,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 数据校验异常
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public RestBean<String> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
+        log.error("数据校验异常：", ex);
+        return RestBean.failure("参数错误："+ Objects.requireNonNull(ex.getBindingResult().getFieldError()).getDefaultMessage());
+    }
+
+    /**
      * 捕获所有异常
      */
     @ExceptionHandler(Exception.class)
@@ -98,5 +109,4 @@ public class GlobalExceptionHandler {
         log.error("系统异常：", ex);  // 记录完整异常堆栈
         return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
     }
-
 }

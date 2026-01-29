@@ -1,6 +1,7 @@
 package org.example.examback.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.RestBean;
 import org.example.examback.entity.Wall;
 import org.example.examback.service.WallService;
@@ -14,6 +15,7 @@ import java.util.List;
  * @Date:2025/12/31
  * @Description:
  */
+@Slf4j
 @RestController
 @RequestMapping("api/wall")
 public class WallController {
@@ -100,5 +102,10 @@ public class WallController {
             return RestBean.failure(404,"更新失败");
         }
         return RestBean.success("更新成功", result);
+    }
+    @ExceptionHandler(Exception.class)
+    public RestBean<String> exceptionHandler(Exception ex){
+        log.error("系统异常：", ex);  // 记录完整异常堆栈
+        return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
     }
 }

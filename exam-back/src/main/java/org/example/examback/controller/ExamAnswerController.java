@@ -1,6 +1,8 @@
 package org.example.examback.controller;
 
 import jakarta.annotation.Resource;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.ExamAnswer;
 import org.example.examback.entity.RestBean;
 import org.example.examback.service.ExamAnswerService;
@@ -8,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
+@Slf4j
 @RestController
 @RequestMapping("api/exam/answer")
 public class ExamAnswerController {
@@ -163,5 +165,10 @@ public class ExamAnswerController {
         } catch (Exception e) {
             return RestBean.failure(500, "获取总分异常: " + e.getMessage());
         }
+    }
+    @ExceptionHandler(Exception.class)
+    public RestBean<String> exceptionHandler(Exception ex){
+        log.error("系统异常：", ex);  // 记录完整异常堆栈
+        return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
     }
 }

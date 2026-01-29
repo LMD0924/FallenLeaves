@@ -2,11 +2,13 @@ package org.example.examback.controller;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.Notice;
 import org.example.examback.entity.RestBean;
 import org.example.examback.entity.User;
 import org.example.examback.service.NoticeService;
 import org.example.examback.service.UserService;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.List;
  * @Date:2025/10/28
  * @Description:
  */
+@Slf4j
 @RestController
 @RequestMapping("api/notice")
 public class NoticeController {
@@ -76,5 +79,10 @@ public class NoticeController {
             noticeService.UpdateNotice(notice);
             return RestBean.success("修改成功",null);
         }else return RestBean.failure(403,"暂无权限修改消息");
+    }
+    @ExceptionHandler(Exception.class)
+    public RestBean<String> exceptionHandler(Exception ex){
+        log.error("系统异常：", ex);  // 记录完整异常堆栈
+        return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
     }
 }

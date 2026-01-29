@@ -3,79 +3,121 @@ import {computed, onMounted, ref} from 'vue'
 import {get, post, upload} from "@/net/index.js";
 import {formatDate} from "@/time/Data.js";
 import {message} from "ant-design-vue";
-import { isDark } from "@/stores/theme.js" // 统一使用主题存储
+import { isDark } from "@/stores/theme.js"
 
 const [messageApi,contextHolder]=message.useMessage();
 // 用户数据
 const user = ref({})
+// 编辑表单
+const editForm = ref({})
+// 编辑对话框状态
+const showEditDialog = ref(false)
+// 当前编辑的字段类型
+const currentEditType = ref('')
+
 //获取个人信息
 const getCurrentUser=()=>{
-  get('api/exam/current',{},(message,data)=>{
+  get('api/user/current',{},(message,data)=>{
     user.value=data
-    console.log(user.value)
+    // 初始化编辑表单
+    editForm.value = {
+      email: user.value.email || '',
+      phone: user.value.phone || '',
+      locality: user.value.locality || '',
+      sex: user.value.sex || '',
+      general: user.value.general || '',
+      username: user.value.username || '',
+      account: user.value.account || '',
+      password: user.value.password || '',
+      role: user.value.role || '',
+      status: user.value.status || '',
+      professional: user.value.professional || '',
+      college: user.value.college || ''
+    }
     // 在获取用户信息成功后调用getClass，确保user.value.class_id已存在
-    if (user.value.class_id) {
+    if (user.value.classId) {
       getClass()
-    } else {
-      console.log('用户没有班级ID')
     }
   })
 }
+
 const classInfo=ref({})
 //获取班级信息
 const getClass=()=>{
   get('api/exam/SelectClassById',{
-    id:user.value.class_id
+    id:user.value.classId
   },(message,data)=>{
     classInfo.value=data
-    messageApi.success(message)
     console.log("班级",classInfo.value)
   })
 }
-// 编辑对话框状态
-const showContactDialog = ref(false)
-const editForm = ref({
-  email: '',
-  phone: '',
-  locality: '',
-  sex:'',
-  general:''
-})
 
-// 编辑联系信息
-const editContact = () => {
-  editForm.value = {
-    email: user.value.email,
-    phone: user.value.phone,
-    locality: user.value.locality
+// 打开编辑对话框
+const openEditDialog = (type) => {
+  currentEditType.value = type
+  showEditDialog.value = true
+
+  // 根据编辑类型设置表单值
+  switch(type) {
+    case 'basic':
+      editForm.value = {
+        username: user.value.username || '',
+        account: user.value.account || '',
+        password: user.value.password || ''
+      }
+      break
+    case 'contact':
+      editForm.value = {
+        email: user.value.email || '',
+        phone: user.value.phone || '',
+        locality: user.value.locality || '',
+        sex: user.value.sex || ''
+      }
+      break
+    case 'education':
+      editForm.value = {
+        professional: user.value.professional || '',
+        college: user.value.college || '',
+        general: user.value.general || ''
+      }
+      break
   }
-  showContactDialog.value = true
 }
 
-// 保存联系信息
-const saveContact = () => {
-  post('api/exam/UpdateUserInfo',{
-    id:user.value.id,
-    user_id:user.value.id,
-    account:user.value.account,
-    username:user.value.username,
-    password:user.value.password,
-    role:user.value.role,
-    status:user.value.status,
-    sex:editForm.value.sex,
-    general:editForm.value.general,
-    locality:editForm.value.locality,
-    email: editForm.value.email||user.value.email,
-    phone: editForm.value.phone||user.value.phone,
-  },(message,data)=>{
-    messageApi.success(message)
-    getCurrentUser()
+// 保存个人信息
+const saveUserInfo = () => {
+  let params = {
+    id: user.value.id
+  }
+
+  // 根据编辑类型构建参数
+  switch(currentEditType.value) {
+    case 'basic':
+      params.username = editForm.value.username
+      params.account = editForm.value.account
+      params.password = editForm.value.password
+      break
+    case 'contact':
+      params.email = editForm.value.email
+      params.phone = editForm.value.phone
+      params.locality = editForm.value.locality
+      params.sex = editForm.value.sex
+      break
+    case 'education':
+      params.professional = editForm.value.professional
+      params.college = editForm.value.college
+      params.general = editForm.value.general
+      break
+  }
+
+  post('api/user/updateUser', params, (message,data)=>{
+    messageApi.success('修改成功')
+    getCurrentUser() // 重新获取用户信息
+    showEditDialog.value = false
   })
-  showContactDialog.value = false
 }
 
 //更新头像
-// 更新头像相关代码
 const fileInput = ref(null)
 const avatarLoading = ref(false)
 
@@ -129,7 +171,7 @@ const handleAvatarUpload = async (event) => {
 }
 
 onMounted( ()=>{
- getCurrentUser()
+  getCurrentUser()
 })
 
 // 主题样式类
@@ -158,6 +200,43 @@ const themeClasses = computed(() => {
     }
   }
 })
+
+// 获取对话框标题
+const getDialogTitle = () => {
+  switch(currentEditType.value) {
+    case 'basic': return '编辑基本信息'
+    case 'contact': return '编辑联系信息'
+    case 'education': return '编辑教育信息'
+    default: return '编辑信息'
+  }
+}
+
+// 获取对话框表单字段
+const getFormFields = () => {
+  switch(currentEditType.value) {
+    case 'basic':
+      return [
+        { label: '用户名', key: 'username', type: 'text', placeholder: '请输入用户名' },
+        { label: '账户名', key: 'account', type: 'text', placeholder: '请输入账户名' },
+        { label: '密码', key: 'password', type: 'password', placeholder: '请输入新密码（留空则不修改）' }
+      ]
+    case 'contact':
+      return [
+        { label: '电子邮箱', key: 'email', type: 'email', placeholder: '请输入电子邮箱' },
+        { label: '手机号码', key: 'phone', type: 'tel', placeholder: '请输入手机号码' },
+        { label: '联系地址', key: 'locality', type: 'text', placeholder: '请输入联系地址' },
+        { label: '性别', key: 'sex', type: 'text', placeholder: '请输入性别' }
+      ]
+    case 'education':
+      return [
+        { label: '专业', key: 'professional', type: 'text', placeholder: '请输入专业' },
+        { label: '学院', key: 'college', type: 'text', placeholder: '请输入学院' },
+        { label: '简介', key: 'general', type: 'textarea', placeholder: '请输入个人简介' }
+      ]
+    default:
+      return []
+  }
+}
 </script>
 
 <template>
@@ -234,16 +313,16 @@ const themeClasses = computed(() => {
                   <p :class="themeClasses.text.primary">{{ user.id }}</p>
                 </div>
                 <div>
-                  <p :class="themeClasses.text.muted + ' text-sm'">注册时间</p>
-                  <p :class="themeClasses.text.primary">2025-08-01</p>
-                </div>
-                <div>
                   <p :class="themeClasses.text.muted + ' text-sm'">最后登录</p>
                   <p :class="themeClasses.text.primary">{{formatDate(user.time)}}</p>
                 </div>
                 <div>
                   <p :class="themeClasses.text.muted + ' text-sm'">账户类型</p>
                   <p :class="themeClasses.text.primary">{{user.role}}</p>
+                </div>
+                <div>
+                  <p :class="themeClasses.text.muted + ' text-sm'">用户名</p>
+                  <p :class="themeClasses.text.primary">{{user.username}}</p>
                 </div>
               </div>
             </div>
@@ -252,11 +331,43 @@ const themeClasses = computed(() => {
 
         <!-- 详细信息卡片 -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 基本信息 -->
+          <div :class="themeClasses.card + ' rounded-2xl p-6'">
+            <div class="flex items-center justify-between mb-4">
+              <h3 :class="themeClasses.text.primary + ' text-lg font-medium'">基本信息</h3>
+              <button @click="openEditDialog('basic')" :class="themeClasses.button.accent + ' text-sm flex items-center'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+                编辑
+              </button>
+            </div>
+
+            <div class="space-y-4">
+              <div>
+                <p :class="themeClasses.text.muted + ' text-sm'">用户名</p>
+                <p :class="themeClasses.text.primary">{{ user.username || '未设置'}}</p>
+              </div>
+              <div>
+                <p :class="themeClasses.text.muted + ' text-sm'">账户名</p>
+                <p :class="themeClasses.text.primary">{{ user.account || '未设置'}}</p>
+              </div>
+              <div>
+                <p :class="themeClasses.text.muted + ' text-sm'">密码</p>
+                <p :class="themeClasses.text.primary">••••••••</p>
+              </div>
+              <div>
+                <p :class="themeClasses.text.muted + ' text-sm'">用户角色</p>
+                <p :class="themeClasses.text.primary">{{ user.role || '未设置'}}</p>
+              </div>
+            </div>
+          </div>
+
           <!-- 联系信息 -->
           <div :class="themeClasses.card + ' rounded-2xl p-6'">
             <div class="flex items-center justify-between mb-4">
               <h3 :class="themeClasses.text.primary + ' text-lg font-medium'">联系信息</h3>
-              <button @click="editContact" :class="themeClasses.button.accent + ' text-sm flex items-center'">
+              <button @click="openEditDialog('contact')" :class="themeClasses.button.accent + ' text-sm flex items-center'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                 </svg>
@@ -277,51 +388,18 @@ const themeClasses = computed(() => {
                 <p :class="themeClasses.text.muted + ' text-sm'">联系地址</p>
                 <p :class="themeClasses.text.primary">{{ user.locality || '未设置' }}</p>
               </div>
-            </div>
-          </div>
-
-          <!-- 账户安全 -->
-          <div :class="themeClasses.card + ' rounded-2xl p-6'">
-            <div class="flex items-center justify-between mb-4">
-              <h3 :class="themeClasses.text.primary + ' text-lg font-medium'">账户安全</h3>
-              <button :class="themeClasses.button.accent + ' text-sm flex items-center'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                </svg>
-                安全设置
-              </button>
-            </div>
-
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p :class="themeClasses.text.muted + ' text-sm'">密码</p>
-                  <p :class="themeClasses.text.primary">••••••••</p>
-                </div>
-                <button :class="themeClasses.button.accent + ' text-sm'">修改</button>
-              </div>
-              <div class="flex items-center justify-between">
-                <div>
-                  <p :class="themeClasses.text.muted + ' text-sm'">双重认证</p>
-                  <p :class="themeClasses.text.primary">{{ user.twoFactor ? '已启用' : '未启用' }}</p>
-                </div>
-                <button :class="themeClasses.button.accent + ' text-sm'">{{ user.twoFactor ? '管理' : '启用' }}</button>
-              </div>
-              <div class="flex items-center justify-between">
-                <div>
-                  <p :class="themeClasses.text.muted + ' text-sm'">登录设备</p>
-                  <p :class="themeClasses.text.primary"> 台设备</p>
-                </div>
-                <button :class="themeClasses.button.accent + ' text-sm'">查看</button>
+              <div>
+                <p :class="themeClasses.text.muted + ' text-sm'">性别</p>
+                <p :class="themeClasses.text.primary">{{ user.sex || '未设置' }}</p>
               </div>
             </div>
           </div>
 
-          <!-- 教育/工作信息 -->
+          <!-- 教育信息 -->
           <div :class="themeClasses.card + ' rounded-2xl p-6'">
             <div class="flex items-center justify-between mb-4">
-              <h3 :class="themeClasses.text.primary + ' text-lg font-medium'">{{ user.type === '教师' ? '工作信息' : '教育信息' }}</h3>
-              <button :class="themeClasses.button.accent + ' text-sm flex items-center'">
+              <h3 :class="themeClasses.text.primary + ' text-lg font-medium'">教育信息</h3>
+              <button @click="openEditDialog('education')" :class="themeClasses.button.accent + ' text-sm flex items-center'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                 </svg>
@@ -331,27 +409,20 @@ const themeClasses = computed(() => {
 
             <div class="space-y-4">
               <div>
-                <p :class="themeClasses.text.muted + ' text-sm'">{{ user.type === '教师' ? '院系' : '学院' }}</p>
+                <p :class="themeClasses.text.muted + ' text-sm'">专业</p>
                 <p :class="themeClasses.text.primary">{{ user.professional || '未设置' }}</p>
               </div>
               <div>
-                <p :class="themeClasses.text.muted + ' text-sm'">{{ user.type === '教师' ? '职称' : '专业' }}</p>
-                <p :class="themeClasses.text.primary">{{ user.professional || '未设置' }}</p>
+                <p :class="themeClasses.text.muted + ' text-sm'">学院</p>
+                <p :class="themeClasses.text.primary">{{ user.college || '未设置' }}</p>
               </div>
-              <div v-if="user.type !== '教师'">
+              <div>
+                <p :class="themeClasses.text.muted + ' text-sm'">个人简介</p>
+                <p :class="themeClasses.text.primary">{{ user.general || '未设置' }}</p>
+              </div>
+              <div v-if="user.type !== '教师' && classInfo">
                 <p :class="themeClasses.text.muted + ' text-sm'">班级</p>
                 <p :class="themeClasses.text.primary">{{ classInfo.name || '未设置' }}</p>
-              </div>
-              <div v-if="user.type === '教师'">
-                <p :class="themeClasses.text.muted + ' text-sm'">教授课程</p>
-                <div class="flex flex-wrap gap-2 mt-1">
-                  <span v-for="course in user.courses.slice(0, 3)" :key="course" class="px-2 py-1 text-xs rounded-full bg-indigo-500/20 text-indigo-300">
-                    {{ course }}
-                  </span>
-                  <span v-if="user.courses.length > 3" class="px-2 py-1 text-xs rounded-full" :class="isDark ? 'bg-white/10 text-white/50' : 'bg-gray-100 text-gray-500'">
-                    +{{ user.courses.length - 3 }}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -391,12 +462,12 @@ const themeClasses = computed(() => {
       </div>
     </main>
 
-    <!-- 编辑联系信息对话框 -->
-    <div v-if="showContactDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <!-- 编辑信息对话框 -->
+    <div v-if="showEditDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div :class="themeClasses.card + ' rounded-2xl p-6 w-full max-w-md'">
-        <div class="flex items-center justify-between mb-4">
-          <h3 :class="themeClasses.text.primary + ' text-lg font-medium'">编辑联系信息</h3>
-          <button @click="showContactDialog = false" :class="themeClasses.text.muted + ' hover:' + (isDark ? 'text-white' : 'text-gray-800')">
+        <div class="flex items-center justify-between mb-6">
+          <h3 :class="themeClasses.text.primary + ' text-xl font-medium'">{{ getDialogTitle() }}</h3>
+          <button @click="showEditDialog = false" :class="themeClasses.text.muted + ' hover:' + (isDark ? 'text-white' : 'text-gray-800')">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -404,40 +475,35 @@ const themeClasses = computed(() => {
         </div>
 
         <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1" :class="themeClasses.text.secondary">电子邮箱</label>
+          <div v-for="field in getFormFields()" :key="field.key">
+            <label class="block text-sm font-medium mb-1" :class="themeClasses.text.secondary">
+              {{ field.label }}
+            </label>
             <input
-              v-model="editForm.email"
-              type="email"
+              v-if="field.type !== 'textarea'"
+              v-model="editForm[field.key]"
+              :type="field.type"
+              :placeholder="field.placeholder"
               :class="themeClasses.input + ' w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'"
             >
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1" :class="themeClasses.text.secondary">手机号码</label>
-            <input
-              v-model="editForm.phone"
-              type="tel"
-              :class="themeClasses.input + ' w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'"
-            >
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1" :class="themeClasses.text.secondary">联系地址</label>
-            <input
-              v-model="editForm.locality"
-              type="text"
-              :class="themeClasses.input + ' w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'"
-            >
+            <textarea
+              v-else
+              v-model="editForm[field.key]"
+              :placeholder="field.placeholder"
+              :rows="3"
+              :class="themeClasses.input + ' w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'"
+            ></textarea>
           </div>
 
           <div class="pt-4 flex space-x-3">
             <button
-              @click="showContactDialog = false"
+              @click="showEditDialog = false"
               :class="themeClasses.button.secondary + ' flex-1 px-4 py-2 rounded-lg transition-colors'"
             >
               取消
             </button>
             <button
-              @click="saveContact"
+              @click="saveUserInfo"
               :class="themeClasses.button.primary + ' flex-1 px-4 py-2 rounded-lg transition-colors'"
             >
               保存

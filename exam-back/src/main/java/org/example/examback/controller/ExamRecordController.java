@@ -2,6 +2,7 @@ package org.example.examback.controller;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.example.examback.entity.ExamRecord;
 import org.example.examback.entity.RestBean;
 import org.example.examback.service.ExamRecordService;
@@ -11,7 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+@Slf4j
 @RestController
 @RequestMapping("api/exam/record")
 public class ExamRecordController {
@@ -251,5 +252,10 @@ public class ExamRecordController {
         } catch (Exception e) {
             return RestBean.failure(500, "导出答案异常: " + e.getMessage());
         }
+    }
+    @ExceptionHandler(Exception.class)
+    public RestBean<String> exceptionHandler(Exception ex){
+        log.error("系统异常：", ex);  // 记录完整异常堆栈
+        return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
     }
 }
