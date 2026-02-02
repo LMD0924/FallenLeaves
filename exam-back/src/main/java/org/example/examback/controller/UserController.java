@@ -26,6 +26,57 @@ public class UserController {
     UserService userService;
     @Resource
     FileUploadUtil fileUploadUtil;
+    //获取所有教师和学生
+    @GetMapping("/AllTeacher")
+    public RestBean<List<User>> AllTeacher(){
+        List<User> list=userService.AllTeacher();
+        for(User user:list){
+            user.setPassword("**不给看**");
+        }
+        return RestBean.success("获取成功",list);
+    }
+    @GetMapping("/AllStudent")
+    public RestBean<List<User>> AllStudent(){
+        List<User> list=userService.AllStudent();
+        for(User user:list){
+            user.setPassword("**不给看**");
+        }
+        return RestBean.success("获取成功",list);
+    }
+    //选择专业
+    @PostMapping("UpdateUserProfessional")
+    public RestBean<Integer> UpdateUserProfessional(@RequestParam("professional") String professional,
+                                                    @RequestParam("id") Integer id){
+        int result=userService.UpdateUserProfessional(professional,id);
+        if(result!=0) return RestBean.success("选择专业成功",result);
+        else return RestBean.failure(404,"选择专业失败");
+    }
+    //更换头像
+    @PostMapping("/updateAvatar")
+    public RestBean<String> updateAvatar(@RequestParam("file") MultipartFile file,
+                                         HttpServletRequest request) {
+        try {
+            //验证文件类型
+            if (!fileUploadUtil.isImageFile(file)) {
+                return RestBean.failure(400, "只能上传图片文件");
+            }
+            //验证文件大小
+            if (file.getSize() > 10 * 1024 * 1024) {
+                return RestBean.failure(400, "文件大小不能超过10MB");
+            }
+            //上传文件并获取URL
+            String avatarUrl = fileUploadUtil.uploadFile(file);
+            //更新用户头像
+            Integer userId = (Integer) request.getAttribute("id");
+            User user = userService.SelectById(userId);
+            user.setAvatar(avatarUrl);
+            int result = userService.UpdateUserAvatar(avatarUrl, userId);
+            if (result != 0) return RestBean.success("上传成功", avatarUrl);
+            else return RestBean.failure(404, "上传失败");
+        } catch (Exception e) {
+            return RestBean.failure(500, "上传失败");
+        }
+    }
     @GetMapping("/information")
     public RestBean<User> getUserInfo(HttpServletRequest request){
         Integer userId=(Integer) request.getAttribute("id");
@@ -62,7 +113,7 @@ public class UserController {
         String avatar=userService.getAvatar(id);
         return RestBean.success("获取成功",avatar);
     }
-    //更换头像
+/*    //更换头像
     @PostMapping("/updateAvatar")
     public RestBean<String> updateAvatar(@RequestParam("file") MultipartFile file,
                                          HttpServletRequest request){
@@ -92,7 +143,7 @@ public class UserController {
         }catch (Exception e){
             return RestBean.failure(500,"上传失败");
         }
-    }
+    }*/
     //更改个人信息
         @PostMapping("/updateUser")
         public RestBean<String> updateUser(@ModelAttribute @Valid User user,
