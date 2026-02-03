@@ -20,7 +20,7 @@ public class SmsCodeUtil {
     private final int codeLength =6; //验证码长度
     private final int expireMinutes = 2; //验证码有效期（分钟）
     private String redisPrefix = "sms"; //验证码在Redis中的前缀
-    private final int resendInterval = 2; //重新发送验证码的间隔时间（秒）
+    private final int resendInterval = 2; //重新发送验证码的间隔时间（分钟）
 
     /*
     * 生成短信验证码

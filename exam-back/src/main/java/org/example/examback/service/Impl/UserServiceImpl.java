@@ -49,6 +49,14 @@ public class UserServiceImpl implements UserService {
     public User ExamLogin(String username,String password,String role){
         return userMapper.ExamLogin(username, password, role);
     }
+
+    /*
+    * 手机号登录
+    * */
+    public User phoneLogin(String phone){
+        return userMapper.phoneLogin(phone);
+    }
+
     //根据id查询信息
     @Override
     public User SelectById(Integer id){

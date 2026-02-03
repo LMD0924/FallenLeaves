@@ -26,6 +26,9 @@ public interface UserMapper {
     //登录
     @Select("select * from user where username=#{username} and password=#{password} and role=#{role} and status='审核通过'")
     User ExamLogin(String username, String password, String role);
+    //手机号登录
+    @Select("select * from user where phone=#{phone} and status='审核通过'")
+    User phoneLogin(String phone);
     //根据id查询信息
     @Select("select * from user where id=#{id}")
     User SelectById(Integer id);
@@ -75,8 +78,7 @@ public interface UserMapper {
             " set avatar=#{avatar} where user_id=#{user_id}" +
             "</script>")
     int UpdateXmAvatar(String avatar, Integer user_id, String role);
-//    @Select("select * from user where account = #{account} and password = #{password}")
-//    User login(String account, String password);
+
     @Select("SELECT *FROM user WHERE id=#{id}")
     User getUserById(int id);
 

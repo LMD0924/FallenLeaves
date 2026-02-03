@@ -10,6 +10,8 @@ public interface UserService {
     //登录注册
     int InsertUser(String account,String username,String password,String role,String status);
     User ExamLogin(String username, String password, String role);
+    //手机号登录
+    User phoneLogin(String phone);
     //根据id查询信息
     User SelectById(Integer id);
     //获取所有用户
