@@ -39,7 +39,7 @@ const isAdmin = computed(() => user.value.role === '管理员')
 // 获取个人信息
 const fetchUserInfo = () => {
   return new Promise((resolve, reject) => {
-    get('api/exam/current', {}, (msg, data) => {
+    get('api/user/current', {}, (msg, data) => {
       user.value = data
       console.log('用户信息:', user.value)
       resolve(data)
@@ -51,10 +51,8 @@ const fetchUserInfo = () => {
 //获取所用户
 const AllUser=()=>{
   return new Promise((resolve, reject) => {
-    get('api/exam/AllUser', {}, (msg, data) => {
+    get('api/user/AllUser', {}, (msg, data) => {
       users.value = data
-      console.log('获取到的用户数据:', users.value)
-      console.log('用户数据长度:', data ? data.length : 0)
       resolve(data || [])
     }, (error) => {
       console.error('获取用户数据失败:', error)
@@ -184,7 +182,7 @@ const openAddMembersDialog = async (course) => {
 
     // 获取所有用户
     const users = await new Promise((resolve, reject) => {
-      get('api/exam/AllUser', {}, (msg, data) => {
+      get('api/user/AllUser', {}, (msg, data) => {
         // 过滤掉已经是课程成员的用户
         const courseMemberIds = new Set(courseMembers.value.map(m => m.user_id))
         const filteredUsers = data.filter(user =>
@@ -552,6 +550,7 @@ onMounted(async () => {
           新增课程
         </button>
         <button
+          :disabled="true"
           v-if="isAdmin"
           @click="openUserDialog"
           class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white transition-colors flex items-center"
@@ -1083,7 +1082,7 @@ onMounted(async () => {
             </thead>
             <tbody>
             <tr v-for="member in courseMembers" :key="member.id" class="border-b transition-colors" :class="isDark?'border-white/10 hover:bg-white/5':'border-gray-200 hover:bg-gray-50'">
-              <td class="py-4 px-4 font-mono" :class="isDark?'text-white':'text-gray-900'">{{ member.user_id }}</td>
+              <td class="py-4 px-4 font-mono" :class="isDark?'text-white':'text-gray-900'">{{ member.id }}</td>
               <td class="py-4 px-4" :class="isDark?'text-white':'text-gray-900'">{{ member.account }}</td>
               <td class="py-4 px-4">
                   <span :class="{

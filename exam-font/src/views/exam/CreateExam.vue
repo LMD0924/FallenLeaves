@@ -50,7 +50,7 @@ const questionSearch = ref('')
 const User = ref({})
 const getUser = () => {
   return new Promise((resolve, reject) => {
-    get('api/exam/current', {},
+    get('api/user/current', {},
       (message, data) => {
         User.value = data
         resolve(data)
@@ -345,7 +345,7 @@ const saveExam = async () => {
   if (!User.value.id) {
     await getUser()
   }
-  
+
   const requestData = {
     ...examForm.value,
     teacher_id: User.value.id, // 使用当前登录用户的ID作为teacher_id

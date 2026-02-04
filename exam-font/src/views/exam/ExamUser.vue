@@ -19,6 +19,7 @@ const currentEditType = ref('')
 const getCurrentUser=()=>{
   get('api/user/current',{},(message,data)=>{
     user.value=data
+    console.log("用户",user.value)
     // 初始化编辑表单
     editForm.value = {
       email: user.value.email || '',
@@ -110,7 +111,7 @@ const saveUserInfo = () => {
       break
   }
 
-  post('api/user/updateUser', params, (message,data)=>{
+  post('api/user/updateUserInfo', params, (message,data)=>{
     messageApi.success('修改成功')
     getCurrentUser() // 重新获取用户信息
     showEditDialog.value = false
@@ -149,7 +150,7 @@ const handleAvatarUpload = async (event) => {
   avatarLoading.value = true
 
   try {
-    upload("api/exam/updateAvatar", formData,
+    upload("api/user/updateAvatar", formData,
       (message, data) => {
         if (message === '上传成功') {
           user.value.avatar = data
@@ -314,7 +315,7 @@ const getFormFields = () => {
                 </div>
                 <div>
                   <p :class="themeClasses.text.muted + ' text-sm'">最后登录</p>
-                  <p :class="themeClasses.text.primary">{{formatDate(user.time)}}</p>
+                  <p :class="themeClasses.text.primary">{{formatDate(user.endLoginTime)}}</p>
                 </div>
                 <div>
                   <p :class="themeClasses.text.muted + ' text-sm'">账户类型</p>

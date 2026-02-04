@@ -24,22 +24,22 @@ public interface ExamMapper {
  @Delete("delete from xm_course_user where user_id=#{user_id} and course_id=#{course_id}")
  int DeleteCourseUser(Integer user_id,Integer course_id);
  // 查询所有课程并关联教师信息
- @Select("SELECT c.*, COALESCE(c.teacher_name, t.account) as teacher_name, t.phone as teacher_phone, t.email as teacher_email " +
+ @Select("SELECT c.*, COALESCE(c.teacher_name, u.account) as teacherName, u.phone as teacherPhone, u.email as teacherEmail " +
          "FROM xm_course c " +
-         "LEFT JOIN xm_teacher t ON c.teacher_id = t.user_id")
+         "LEFT JOIN user u ON c.teacher_id = u.id")
  List<Course> AllCourse();
 
  // 根据id查询课程并关联教师信息
- @Select("SELECT c.*, COALESCE(c.teacher_name, t.account) as teacher_name, t.phone as teacher_phone, t.email as teacher_email " +
+ @Select("SELECT c.*, COALESCE(c.teacher_name, u.account) as teacher_name, u.phone as teacher_phone, u.email as teacher_email " +
          "FROM xm_course c " +
-         "LEFT JOIN xm_teacher t ON c.teacher_id = t.user_id " +
+         "LEFT JOIN user u ON c.teacher_id = u.id " +
          "WHERE c.id=#{id}")
  Course SelectCourseById(Integer id);
 
  // 根据教师id查询课程并关联教师信息
- @Select("SELECT c.*, COALESCE(c.teacher_name, t.account) as teacher_name, t.phone as teacher_phone, t.email as teacher_email " +
+ @Select("SELECT c.*, COALESCE(c.teacher_name, u.account) as teacher_name, u.phone as teacher_phone, u.email as teacher_email " +
          "FROM xm_course c " +
-         "LEFT JOIN xm_teacher t ON c.teacher_id = t.user_id " +
+         "LEFT JOIN user u ON c.teacher_id = u.id " +
          "WHERE c.teacher_id=#{teacher_id}")
  List<Course> SelectCourseByTeacherId(Integer teacher_id);
  //根据课程id修改
@@ -81,7 +81,7 @@ public interface ExamMapper {
  @Delete("delete from xm_class where id=#{id}")
  int DeleteClass(Integer id);
  //查询所有班级
- @Select("select * from xm_class")
+ @Select("select c.*,u.account as teacherName from xm_class c left join user u on c.teacher_id=u.id")
  List<ExamClass> AllClass();
  //用户加入班级
  @Update("update user set class_id=#{class_id} where id=#{id}")
@@ -93,9 +93,12 @@ public interface ExamMapper {
  int ExitClass(Integer id);
 @Update("update xm_class set size=COALESCE(size, 0)-1 where id=#{id}")
 int UpdateClassSizeExit(Integer id);
- //根据id查询班级
-    @Select("select * from xm_class where id=#{id}")
+ //根据id查询班级信息
+@Select("select * from xm_class where id=#{id}")
  ExamClass SelectClassById(Integer id);
+ //根据班级id查询学生
+    @Select("select * from user where class_id=#{id}")
+ List<User> SelectUserByClassId(Integer id);
  //---------------------有关试卷--------------------------------------------------
  //添加试卷
  @Insert("insert into xm_exam (title,description,course_id,teacher_id,total_score,duration,start_time,end_time,pass_score,status) values(#{title},#{description},#{course_id},#{teacher_id},#{total_score},#{duration},#{start_time},#{end_time},#{pass_score},#{status})")

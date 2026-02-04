@@ -159,7 +159,7 @@ const handleLogin = async () => {
   }
 
   loginLoading.value = true
-  post('/api/auth/ExamLogin', {
+  post('/api/auth/Login', {
   username: loginForm.username,
     password: loginForm.password,
     role: loginForm.role
@@ -248,7 +248,7 @@ const handleRegister = async () => {
   registerLoading.value = true
 
   try {
-    const response = await post('/api/auth/ExamRegister', registerForm)
+    const response = await post('/api/auth/Register', registerForm)
 
     if (response.code === 200) {
       messageApi.success(response.message)
@@ -608,7 +608,7 @@ onUnmounted(() => {
                 <span class="text-xs text-gray-400 ml-2">(用于登录)</span>
               </label>
               <input
-                v-model="registerForm.account"
+                v-model="registerForm.username"
                 type="text"
                 required
                 class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-white placeholder-gray-400"
@@ -621,7 +621,7 @@ onUnmounted(() => {
                 姓名 <span class="text-red-400">*</span>
               </label>
               <input
-                v-model="registerForm.username"
+                v-model="registerForm.account"
                 type="text"
                 required
                 class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-white placeholder-gray-400"

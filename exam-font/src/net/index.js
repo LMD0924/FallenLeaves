@@ -116,19 +116,19 @@ const defaultFailure = (message) => ElMessage.warning(message)
 function handleResponse(data, successCallback, failureCallback) {
   if (data.success) {
     // 成功：success=true
-    if (data.type === 'success') {
+  /*  if (data.type === 'success') {
       ElMessage.success(data.message || '操作成功');
     } else if (data.type === 'info') {
       ElMessage.info(data.message || '提示信息');
-    }
+    }*/
     successCallback && successCallback(data.message, data.data, data.code, data.type);
   } else {
     // 失败：success=false
-    if (data.type === 'warning') {
+/*    if (data.type === 'warning') {
       ElMessage.warning(data.message || '操作失败');
     } else if (data.type === 'error') {
       ElMessage.error(data.message || '系统错误');
-    }
+    }*/
     failureCallback && failureCallback(data.message, data.data, data.code, data.type);
   }
 }

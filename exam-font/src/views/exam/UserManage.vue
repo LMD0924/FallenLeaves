@@ -1,7 +1,7 @@
 x<script setup>
 import {ref, computed, onMounted} from 'vue'
 import {get, post} from "@/net/index.js";
-import { message } from "ant-design-vue"
+import { message, Modal } from "ant-design-vue"
 import {isDark} from "@/stores/theme.js"
 
 const [messageApi, contextHolder] = message.useMessage()
@@ -18,15 +18,9 @@ const editingItem = ref(null)
 
 // 表单数据
 const formData = ref({
-  id: '',
-  account: '',
-  username: '',
-  password: '',
-  user_id: '',
   status: '',
-  phone: '',
-  email: '',
-  professional:''
+  professional:'',
+  college:'',
 })
 
 // 状态选项
@@ -55,12 +49,13 @@ const filteredStudents = computed(() => {
 
 // 确保API返回的数据结构正确
 const AllTeacher = () => {
-  get('api/exam/AllTeacher', {}, (message, data) => {
+  get('api/user/AllTeacher', {}, (message, data) => {
     teachers.value = Array.isArray(data) ? data.map(item => ({
       ...item,
       account: item.account || '暂未开发或无数据',
       department: item.department || '暂未开发或无数据',
       email: item.email || '暂未开发或无数据',
+      college: item.college || '暂未开发或无数据',
       courses: item.courses || [],
     })) : []
     console.log("教师数据:", teachers.value)
@@ -68,13 +63,14 @@ const AllTeacher = () => {
 }
 
 const AllStudent = () => {
-  get('api/exam/AllStudent', {}, (message, data) => {
+  get('api/user/AllStudent', {}, (message, data) => {
     students.value = Array.isArray(data) ? data.map(item => ({
       ...item,
       account: item.account || item.account || '暂未开发或无数据',
       class: item.class || '暂未开发或无数据',
       professional: item.professional || '暂未开发或无数据',
       email: item.email || '暂未开发或无数据',
+      college: item.college || '暂未开发或无数据',
     })) : []
     console.log("学生数据:", students.value)
   })
@@ -85,7 +81,7 @@ const currentUserRole=ref('')
 const User=ref({})
 const isEditSelf=ref(false)
 const getCurrentUser=()=>{
-  get('api/exam/current',{},(message,data)=>{
+  get('api/user/current',{},(message,data)=>{
     currentUserRole.value=data.role
     User.value=data
     console.log("当前用户:", User.value)
@@ -110,12 +106,36 @@ const editStudent = (student) => {
 
 // 删除教师
 const deleteTeacher = (id) => {
-  teachers.value = teachers.value.filter(teacher => teacher.id !== id)
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除该教师吗？此操作不可撤销。',
+    onOk() {
+      teachers.value = teachers.value.filter(teacher => teacher.id !== id)
+      messageApi.success('删除成功')
+    },
+    onCancel() {
+      console.log('取消删除')
+    },
+    okText: '确定',
+    cancelText: '取消'
+  })
 }
 
 // 删除学生
 const deleteStudent = (id) => {
-  students.value = students.value.filter(student => student.id !== id)
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除该学生吗？此操作不可撤销。',
+    onOk() {
+      students.value = students.value.filter(student => student.id !== id)
+      messageApi.success('删除成功')
+    },
+    onCancel() {
+      console.log('取消删除')
+    },
+    okText: '确定',
+    cancelText: '取消'
+  })
 }
 
 // 关闭对话框
@@ -137,18 +157,10 @@ const closeDialog = () => {
 // 保存项目
 const saveItem = () => {
   if (editingItem.value) {
-    // 更新现有用户
-    post('/api/exam/UpdateUserInfo', {
-      id: formData.value.user_id,
-      user_id:formData.value.user_id,
-      account: formData.value.account,
-      username: formData.value.username || editingItem.value.username,
-      password: formData.value.password || editingItem.value.password,
-      role: formData.value.role || editingItem.value.role,
-      phone: formData.value.phone || editingItem.value.phone,
-      email: formData.value.email || editingItem.value.email,
-      status: formData.value.status,
-      professional:formData.value.professional
+    // 审核用户
+    post('/api/user/updateStatus', {
+          status:formData.value.status,
+          id:editingItem.value.id
     }, (message) => {
       messageApi.success(message)
       // 重新加载数据
@@ -311,7 +323,7 @@ onMounted(()=>{
                       {{ teacher.account }}
                     </h3>
                     <p :class="isDark ? 'text-gray-400' : 'text-gray-500'" class="text-sm">
-                      ID: {{ teacher.user_id }}
+                      ID: {{ teacher.id }}
                     </p>
                   </div>
                 </div>
@@ -410,7 +422,7 @@ onMounted(()=>{
                       {{ student.account }}
                     </h3>
                     <p :class="isDark ? 'text-gray-400' : 'text-gray-500'" class="text-sm">
-                      ID: {{ student.user_id }}
+                      ID: {{ student.id }}
                     </p>
                   </div>
                 </div>
@@ -502,8 +514,10 @@ onMounted(()=>{
           </div>
 
           <form @submit.prevent="saveItem" class="space-y-6">
+
+
             <div>
-              <label :class="isDark ? 'text-gray-300' : 'text-gray-700'" class="block text-sm font-semibold mb-3">账户</label>
+              <label :class="isDark ? 'text-gray-300' : 'text-gray-700'" class="block text-sm font-semibold mb-3">姓名</label>
               <input
                 :readonly="!isEditSelf"
                 v-model="formData.account"
@@ -520,19 +534,18 @@ onMounted(()=>{
             </div>
 
             <div>
-              <label :class="isDark ? 'text-gray-300' : 'text-gray-700'" class="block text-sm font-semibold mb-3">姓名</label>
+              <label :class="isDark ? 'text-gray-300' : 'text-gray-700'" class="block text-sm font-semibold mb-3">学院</label>
               <input
-                :readonly="!isEditSelf"
-                v-model="formData.user_id"
+                v-model="formData.college"
                 type="text"
                 :class="[
                   'w-full px-4 py-3 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2',
                   isDark
                     ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-transparent'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-transparent',
-                  !isEditSelf ? 'opacity-70 cursor-not-allowed' : ''
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-transparent'
                 ]"
                 required
+                placeholder="请输入学院"
               >
             </div>
 

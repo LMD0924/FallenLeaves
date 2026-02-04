@@ -8,90 +8,37 @@ import java.util.List;
 
 @Mapper
 public interface UserMapper {
-    //登录注册
+    //注册
     @Insert("insert into user(account,username,password,role,status) values(#{account},#{username},#{password},#{role},#{status})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
-    int InsertUser(User user);
-
-    @Insert("<script>" +
-            "INSERT INTO " +
-            "<if test='role == \"管理员\"'>xm_admin</if>" +
-            "<if test='role == \"教师\"'>xm_teacher</if>" +
-            "<if test='role == \"学生\"'>xm_student</if>" +
-            " (user_id, account, username, password, role, status) " +
-            "VALUES (#{user_id}, #{account}, #{username}, #{password}, #{role}, #{status})" +
-            "</script>")
-    int InsertXm(String account, String username, String password, String role, String status, Integer user_id);
-
+    int Register(User user);
     //登录
     @Select("select * from user where username=#{username} and password=#{password} and role=#{role} and status='审核通过'")
-    User ExamLogin(String username, String password, String role);
+    User Login(String username, String password, String role);
     //手机号登录
     @Select("select * from user where phone=#{phone} and status='审核通过'")
     User phoneLogin(String phone);
     //根据id查询信息
-    @Select("select * from user where id=#{id}")
-    User SelectById(Integer id);
+    @Select("SELECT *FROM user WHERE id=#{id}")
+    User getUserById(int id);
     //获取所有用户
     @Select("select * from user")
-    List<User> AllUser();
+    List<User> getAllUser();
     //获取所有教师
-    @Select("select * from xm_teacher")
+    @Select("select * from user where role='教师'")
     List<User> AllTeacher();
     //获取所有学生
-    @Select("select * from xm_student")
+    @Select("select * from user where role='学生'")
     List<User> AllStudent();
-    //更新信息
-    @Update("update user set account=#{account},username=#{username},password=#{password},role=#{role},status=#{status},phone=#{phone},email=#{email},sex=#{sex},locality=#{locality},general=#{general},professional=#{professional} where id=#{id}")
-    int UpdateUserInfo(User user);
-    @Update("<script>" +
-            "UPDATE " +
-            "<choose>" +
-            "  <when test='role == &quot;管理员&quot;'>xm_admin</when>" +
-            "  <when test='role == &quot;教师&quot;'>xm_teacher</when>" +
-            "  <when test='role == &quot;学生&quot;'>xm_student</when>" +
-            "</choose> " +
-            "SET account=#{account}, " +
-            "username=#{username}, " +
-            "password=#{password}, " +
-            "role=#{role}, " +
-            "status=#{status}, " +
-            "phone=#{phone}, " +
-            "email=#{email}, " +
-            "professional=#{professional} " +
-            "WHERE user_id=#{user_id}" +
-            "</script>")
-    int UpdateXm(User user);
     //选择专业
     @Update("update user set professional=#{professional} where id=#{id}")
     int UpdateUserProfessional(String professional,Integer id);
-    //更新头像
-    @Update("update user set avatar=#{avatar} where id=#{id}")
-    int UpdateUserAvatar(String avatar,Integer id);
-    @Update("<script>" +
-            "update " +
-            "<choose>" +
-            "<when test='role == &quot;管理员&quot;'>xm_admin</when>" +
-            "<when test='role == &quot;教师&quot;'>xm_teacher</when>" +
-            "<when test='role == &quot;学生&quot;'>xm_student</when>" +
-            "</choose>" +
-            " set avatar=#{avatar} where user_id=#{user_id}" +
-            "</script>")
-    int UpdateXmAvatar(String avatar, Integer user_id, String role);
-
-    @Select("SELECT *FROM user WHERE id=#{id}")
-    User getUserById(int id);
-
-    @Select("SELECT *FROM user ")
-    List<User> getAllUser();
-
+    //获取头像
     @Select("SELECT avatar FROM user WHERE id=#{id}")
     String getAvatar(int id);
-//    @Insert("insert into user (account,username,password) values (#{account},#{username},#{password})")
-//    void register(String account,String username,String password);
     //更换头像
     @Update("update user set avatar=#{avatar} where id=#{id}")
-    void updateAvatar(String avatar,int id);
+    int updateAvatar(String avatar,int id);
+    //更新信息
     @Update("update user set username=#{username}," +
             "account=#{account}," +
             "password=#{password}," +
@@ -109,7 +56,7 @@ public interface UserMapper {
             "college=#{college}," +
             "end_login_time=#{endLoginTime}" +
             " where id=#{id}")
-    void updateUser(User user);
+    int updateUserInfo(User user);
     //关注
     @Update("update user set follow=COALESCE(follow,0)+1 where id=#{userId}")
     int addFollow(Integer userId);
@@ -125,4 +72,10 @@ public interface UserMapper {
     //是否在线
     @Update("update user set is_online=#{isOnline} where id=#{id}")
     void updateOnlineStatus(Integer id,Boolean is_online);
+
+    /*
+    * 管理员审核
+    * */
+    @Update("update user set status=#{status} where id=#{id}")
+    int updateStatus(String status,Integer id);
 }

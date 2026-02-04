@@ -68,7 +68,7 @@ public class UserController {
             String avatarUrl = fileUploadUtil.uploadFile(file);
             //更新用户头像
             Integer userId = (Integer) request.getAttribute("id");
-            User user = userService.SelectById(userId);
+            User user = userService.getUserById(userId);
             user.setAvatar(avatarUrl);
             int result = userService.UpdateUserAvatar(avatarUrl, userId);
             if (result != 0) return RestBean.success("上传成功", avatarUrl);
@@ -113,49 +113,19 @@ public class UserController {
         String avatar=userService.getAvatar(id);
         return RestBean.success("获取成功",avatar);
     }
-/*    //更换头像
-    @PostMapping("/updateAvatar")
-    public RestBean<String> updateAvatar(@RequestParam("file") MultipartFile file,
-                                         HttpServletRequest request){
-        try{
-            //验证文件类型
-            if(!fileUploadUtil.isImageFile(file)){
-                return RestBean.failure(400,"只能上传图片文件");
-            }
-            //验证文件大小
-            if(file.getSize()>10*1024*1024){
-                return RestBean.failure(400,"文件大小不能超过10MB");
-            }
-            //上传文件并获取URL
-            String avatarUrl=fileUploadUtil.uploadFile(file);
-            //更新用户头像
-            Integer userId=(Integer) request.getAttribute("id");
-            if(userId == null) {
-                return RestBean.failure(401,"未登录或token无效");
-            }
-            User user=userService.getUserById(userId);
-            if(user == null) {
-                return RestBean.failure(404,"用户不存在");
-            }
-            user.setAvatar(avatarUrl);
-            userService.updateAvatar(avatarUrl,userId);
-            return RestBean.success("上传成功",avatarUrl);
-        }catch (Exception e){
-            return RestBean.failure(500,"上传失败");
-        }
-    }*/
+
     //更改个人信息
-        @PostMapping("/updateUser")
-        public RestBean<String> updateUser(@ModelAttribute @Valid User user,
-                                           HttpServletRequest request){
-            Integer userId=(Integer) request.getAttribute("id");
-            if(userId == null) {
-                return RestBean.failure(401,"未登录或token无效");
-            }
-            user.setId(userId);
-            userService.updateUser(user);
-            return RestBean.success("更新成功");
+    @PostMapping("/updateUserInfo")
+    public RestBean<String> updateUserInfo(@ModelAttribute @Valid User user,
+                                       HttpServletRequest request){
+        Integer userId=(Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
         }
+        user.setId(userId);
+        userService.updateUserInfo(user);
+        return RestBean.success("更新成功");
+    }
     //获取指定用户信息
     @GetMapping("/getUserById")
     public RestBean<User> getUserById(@RequestParam("id") Integer id) {
@@ -183,4 +153,12 @@ public class UserController {
         return RestBean.failure("系统错误：" + (ex.getMessage() != null ? ex.getMessage() : "未知错误"));
     }
 
+    /*
+    * 管理员审核
+    * */
+    @PostMapping("/updateStatus")
+    public RestBean<String> updateStatus(String status,Integer id){
+        userService.updateStatus(status,id);
+        return RestBean.success("更新成功");
+    }
 }

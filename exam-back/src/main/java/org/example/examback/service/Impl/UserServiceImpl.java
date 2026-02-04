@@ -6,48 +6,38 @@ import org.example.examback.entity.User;
 import org.example.examback.mapper.UserMapper;
 import org.example.examback.service.UserService;
 import org.example.examback.util.UserMergeUtil;
+import org.example.examback.util.ValidationUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
 import java.util.List;
+
+import static org.example.examback.util.ValidationUtil.PasswordStrength.MEDIUM;
+
 @Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     @Resource
     UserMapper userMapper;
-    //登陆注册
+    @Autowired
+    private ValidationUtil validationUtil;
+    /*
+    * 注册，先添加账号，用户名，密码，身份，状态
+    * */
     @Override
-    @Transactional
-    public int InsertUser(String account,String username,String password,String role,String status){
-        try {
-            //先插入User表，获取自动生成的id
-            User user = new User();
-            user.setAccount(account);
-            user.setUsername(username);
-            user.setPassword(password);
-            user.setRole(role);
-            user.setStatus(status);
-
-            int result = userMapper.InsertUser(user);
-            if (result != 1) throw new RuntimeException("插入User表失败");
-
-            // 获取自动生成的id
-            Integer userId = user.getId();
-            if (userId == null) throw new RuntimeException("获取用户ID失败");
-
-            //再插入对应角色表
-            result = userMapper.InsertXm(account, username, password, role, status, userId);
-            if (result != 1) throw new RuntimeException("插入对应表失败");
-            return 1;
-        }catch(Exception e){
-            log.error("注册失败：",e);
-            throw e;
+    public int Register(User user){
+        //先验证密码强度
+        ValidationUtil.ValidationResult result = validationUtil.validatePassword(user.getPassword(),MEDIUM);
+        if (!result.isSuccess()) {
+            throw  new RuntimeException(result.getMessage());
         }
+        return userMapper.Register(user);
     }
     @Override
-    public User ExamLogin(String username,String password,String role){
-        return userMapper.ExamLogin(username, password, role);
+    public User Login(String username,String password,String role){
+
+        return userMapper.Login(username, password, role);
     }
 
     /*
@@ -59,13 +49,13 @@ public class UserServiceImpl implements UserService {
 
     //根据id查询信息
     @Override
-    public User SelectById(Integer id){
-        return userMapper.SelectById(id);
+    public User getUserById(Integer id){
+        return userMapper.getUserById(id);
     }
     //获取所有用户
     @Override
-    public List<User> AllUser(){
-        return userMapper.AllUser();
+    public List<User> getAllUser(){
+        return userMapper.getAllUser();
     }
     //获取所有教师
     @Override
@@ -79,22 +69,19 @@ public class UserServiceImpl implements UserService {
     }
     //更新信息
     @Override
-    @Transactional
-    public int UpdateUserInfo(User user){
-        try{
-            if("**不给看**".equals(user.getPassword())) {
-                user.setPassword(SelectById(user.getId()).getPassword());
+    public int updateUserInfo(User user){
+        //先查询以前的个人信息
+        User oldUser=getUserById(user.getId());
+        //验证更新的个人信息是否符合要求(目前先验证个用户名)
+        if(user.getUsername()!=null){
+            ValidationUtil.ValidationResult result = validationUtil.validateUsername(user.getUsername());
+            if(!result.isSuccess()){
+                throw new RuntimeException(result.getMessage());
             }
-            //先更新User表
-            int result=userMapper.UpdateUserInfo(user);
-            if(result==0) throw new RuntimeException("更新user表失败");
-            //在更新对应角色表
-            result=userMapper.UpdateXm(user);
-            if(result==0) throw new RuntimeException("更新对应角色表失败");
-            return 1;
-        }catch(Exception e){
-            throw new RuntimeException("更新失败",e.getCause());
         }
+        //合并用户信息
+        User mergerUser= UserMergeUtil.merge(user,oldUser);
+        return userMapper.updateUserInfo(mergerUser);
     }
     //选择专业
     @Override
@@ -103,70 +90,25 @@ public class UserServiceImpl implements UserService {
     }
     //更新头像
     @Override
-    @Transactional
     public int UpdateUserAvatar(String avatar,Integer id){
-        try{
-            // 先获取用户信息以获取角色
-            User user = userMapper.SelectById(id);
-            if (user == null) {
-                throw new RuntimeException("用户不存在");
-            }
-
-            int result=userMapper.UpdateUserAvatar(avatar,id);
-            if(result==0) throw new RuntimeException("更新user表失败");
-
-            result=userMapper.UpdateXmAvatar(avatar,id,user.getRole());
-            if(result==0) throw new RuntimeException("更新对应角色表失败");
-            return 1;
-        }catch(Exception e){
-            throw new RuntimeException("更新失败",e.getCause());
-        }
-    }
-    @Override
-    public User getUserById(int id) {
-        return userMapper.getUserById(id);
-    }
-
-    @Override
-    public List<User> getAllUser() {
-        return userMapper.getAllUser();
+        return userMapper.updateAvatar(avatar,id);
     }
 
     @Override
     public String getAvatar(int id) {
         return userMapper.getAvatar(id);
     }
-//    @Override
-//    public boolean register(User user){
-//        userMapper.register(user.getAccount(),user.getUsername(),user.getPassword());
-//        return true;
-//    }
-    //更换头像
-    @Override
-    public void updateAvatar(String avatar,int id){
-
-        userMapper.updateAvatar(avatar,id);
-    }
-    //修改个人信息
-    @Override
-    public void updateUser(User user) {
-        if (user == null || user.getId() == null) {
-            throw new IllegalArgumentException("用户ID不能为空");
-        }
-
-        // 获取当前用户
-        User currentUser = userMapper.getUserById(user.getId());
-        if (currentUser == null) {
-            throw new RuntimeException("用户不存在");
-        }
-    User mergerUser= UserMergeUtil.merge(user,currentUser);
-
-        // 更新合并后的用户
-        userMapper.updateUser(mergerUser);
-    }
 
     @Override
     public void updateOnlineStatus(Integer id, Boolean is_online) {
         userMapper.updateOnlineStatus(id,is_online);
+    }
+
+    /*
+    * 管理员审核
+    * */
+    @Override
+    public int updateStatus(String status,Integer id){
+        return userMapper.updateStatus(status,id);
     }
 }

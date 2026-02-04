@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Arrays;
 @Slf4j
 @RestController
 @RequestMapping("api/exam")
@@ -196,19 +199,117 @@ public class ExamController {
         if(list!=null) return RestBean.success("查询成功",list);
         else return RestBean.failure(404,"查询失败");
     }
-    //用户加入班级
+    //用户加入班级（支持单个和批量）
     @PostMapping("/JoinClass")
-    public RestBean<Integer> JoinClass(@RequestParam("class_id") Integer class_id,
-                                       @RequestParam("id") Integer id){
-        int result=examService.JoinClass(class_id,id);
+    public RestBean<Integer> JoinClass(HttpServletRequest request){
+        // 权限验证
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
+        User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
+        if(!user.getRole().equals("管理员") && !user.getRole().equals("教师")) {
+            return RestBean.failure(403,"权限不足，只有管理员和教师可以操作");
+        }
+        
+        Integer class_id = Integer.parseInt(request.getParameter("class_id"));
+        
+        // 获取id参数（支持数组格式和单个格式）
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        List<String> idList = new ArrayList<>();
+        
+        // 处理数组格式的id参数（如id[0]=1&id[1]=2）
+        for (String key : parameterMap.keySet()) {
+            if (key.startsWith("id[")) {
+                String[] values = parameterMap.get(key);
+                if (values != null && values.length > 0) {
+                    idList.add(values[0]);
+                }
+            }
+        }
+        
+        // 处理单个id参数
+        String idParam = request.getParameter("id");
+        if (idParam != null) {
+            if (idParam.contains(",")) {
+                // 逗号分隔的字符串
+                String[] ids = idParam.split(",");
+                idList.addAll(Arrays.asList(ids));
+            } else {
+                // 单个id
+                idList.add(idParam);
+            }
+        }
+        
+        int result;
+        if (!idList.isEmpty()) {
+            // 批量操作
+            String[] ids = idList.toArray(new String[0]);
+            result = examService.BatchJoinClass(class_id, ids);
+        } else {
+            return RestBean.failure(400,"参数格式错误");
+        }
+        
         if(result!=0) return RestBean.success("加入班级成功",result);
         else return RestBean.failure(404,"加入班级失败");
     }
-    //退出班级
+    //退出班级（支持单个和批量）
     @PostMapping("/ExitClass")
-    public RestBean<Integer> ExitClass(@RequestParam("class_id") Integer class_id,
-                                       @RequestParam("id") Integer id){
-        int result=examService.ExitClass(class_id,id);
+    public RestBean<Integer> ExitClass(HttpServletRequest request){
+        // 权限验证
+        Integer userId = (Integer) request.getAttribute("id");
+        if(userId == null) {
+            return RestBean.failure(401,"未登录或token无效");
+        }
+        User user=userService.getUserById(userId);
+        if(user == null) {
+            return RestBean.failure(404,"用户不存在");
+        }
+        if(!user.getRole().equals("管理员") && !user.getRole().equals("教师")) {
+            return RestBean.failure(403,"权限不足，只有管理员和教师可以操作");
+        }
+        
+        Integer class_id = Integer.parseInt(request.getParameter("class_id"));
+        
+        // 获取id参数（支持数组格式和单个格式）
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        List<String> idList = new ArrayList<>();
+        
+        // 处理数组格式的id参数（如id[0]=1&id[1]=2）
+        for (String key : parameterMap.keySet()) {
+            if (key.startsWith("id[")) {
+                String[] values = parameterMap.get(key);
+                if (values != null && values.length > 0) {
+                    idList.add(values[0]);
+                }
+            }
+        }
+        
+        // 处理单个id参数
+        String idParam = request.getParameter("id");
+        if (idParam != null) {
+            if (idParam.contains(",")) {
+                // 逗号分隔的字符串
+                String[] ids = idParam.split(",");
+                idList.addAll(Arrays.asList(ids));
+            } else {
+                // 单个id
+                idList.add(idParam);
+            }
+        }
+        
+        int result;
+        if (!idList.isEmpty()) {
+            // 批量操作
+            String[] ids = idList.toArray(new String[0]);
+            result = examService.BatchExitClass(class_id, ids);
+        } else {
+            return RestBean.failure(400,"参数格式错误");
+        }
+        
         if(result!=0) return RestBean.success("退出班级成功",result);
         else return RestBean.failure(404,"退出班级失败");
     }
@@ -217,6 +318,16 @@ public class ExamController {
     public RestBean<ExamClass> SelectClassById(Integer id){
         ExamClass examclass=examService.SelectClassById(id);
         if(examclass!=null) return RestBean.success("查询成功",examclass);
+        else return RestBean.failure(404,"查询失败");
+    }
+
+    /*
+    * 根据班级id查询学生
+    * */
+    @GetMapping("/SelectClassByUserId")
+    public RestBean<List<User>> SelectClassByUserId(Integer id){
+        List<User> list=examService.SelectClassByUserId(id);
+        if(list!=null) return RestBean.success("查询成功",list);
         else return RestBean.failure(404,"查询失败");
     }
     //---------------------有关试卷--------------------------------------------------
@@ -314,7 +425,7 @@ public class ExamController {
         if(userId == null) {
             return RestBean.failure(401,"未登录或token无效");
         }
-        User user=userService.SelectById(userId);
+        User user=userService.getUserById(userId);
         if(user == null) {
             return RestBean.failure(404,"用户不存在");
         }
@@ -336,7 +447,7 @@ public class ExamController {
         if(userId == null) {
             return RestBean.failure(401,"未登录或token无效");
         }
-        User user=userService.SelectById(userId);
+        User user=userService.getUserById(userId);
         if(user == null) {
             return RestBean.failure(404,"用户不存在");
         }

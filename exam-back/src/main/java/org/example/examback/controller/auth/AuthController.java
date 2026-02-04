@@ -25,22 +25,18 @@ public class AuthController {
     private ValidationUtil validationUtil;
 
     //登陆注册
-    @PostMapping("/ExamRegister")
-    public RestBean<Integer> ExamRegister(@RequestParam("account") String account,
-                                          @RequestParam("username") String username,
-                                          @RequestParam("password") String password,
-                                          @RequestParam("role") String role,
-                                          @RequestParam("status") String status){
-        int result=userService.InsertUser(account,username,password,role,status);
+    @PostMapping("/Register")
+    public RestBean<Integer> ExamRegister(User user){
+        int result=userService.Register(user);
         if(result==1){
             return RestBean.success("注册成功，等待管理员审核",result);
         }else return RestBean.failure(404,"注册失败");
     }
-    @PostMapping("/ExamLogin")
+    @PostMapping("/Login")
     public RestBean<String> ExamLogin(@RequestParam("username") String username,
                                       @RequestParam("password") String password,
                                       @RequestParam("role") String role){
-        User user=userService.ExamLogin(username,password,role);
+        User user=userService.Login(username,password,role);
         if(user==null){
             return RestBean.failure(404,"登录失败，审核未通过或账号密码有误，请联系管理员");
         }else{

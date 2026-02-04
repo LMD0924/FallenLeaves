@@ -28,6 +28,10 @@ const availableStudents = ref([])
 const availableStudentSearchQuery = ref('')
 const filteredAvailableStudents = ref([])
 
+// 控制"退出班级"功能
+const selectedExitStudentIds = ref([])
+const currentExitingClassId = ref(null)
+
 // 搜索和筛选
 const searchQuery = ref('')
 const selectedStatus = ref('all')
@@ -42,7 +46,10 @@ const classForm = ref({
   teacher_id: '',
   size: 0,
   status: 'active',
-  introduction: ''
+  introduction: '',
+  teacher:{
+    account:''
+  }
 })
 
 // 状态选项
@@ -61,9 +68,8 @@ const majorOptions = ['计算机科学与技术', '软件工程', '人工智能'
 // 获取个人信息 - 改进版本
 const UserInfo = () => {
   return new Promise((resolve, reject) => {
-    get('api/exam/current', {}, (message, data) => {
+    get('api/user/current', {}, (message, data) => {
       User.value = data || {}
-      console.log("个人信息：", User.value)
       resolve(data)
     }, (error) => {
       console.error("获取用户信息失败:", error)
@@ -82,17 +88,9 @@ const isAdmin = computed(() => {
 const teacherOptions = ref([])
 
 const fetchTeachers = () => {
-  get('api/exam/AllTeacher', {}, (message, data) => {
+  get('api/user/AllTeacher', {}, (message, data) => {
     teacherOptions.value = data
-    console.log("老师数据：", teacherOptions.value)
   })
-}
-
-// 根据teacher_id获取教师姓名的方法
-const getTeacherName = (teacherId) => {
-  if (!teacherId) return '未分配'
-  const teacher = teacherOptions.value.find(t => t.user_id === teacherId)
-  return teacher ? teacher.account : '未知教师'
 }
 
 // 获取班级数据
@@ -100,15 +98,30 @@ const fetchClasses = () => {
   get('api/exam/AllClass', {}, (message, data) => {
     classes.value = data
     filteredClasses.value = data
+    console.log("班级信息",filteredClasses.value)
+  })
+}
+//根据班级id获取班级信息 || 根据班级id获取学生
+const fetchClassById=(cls)=>{
+  get('api/exam/SelectClassById',{
+    id:cls.id
+  },(message,data)=>{
+    classForm.value=data
+  })
+  get('api/exam/SelectClassByUserId',{
+    id:cls.id
+  },(message,data)=>{
+    filteredStudents.value=data
   })
 }
 
+
 // 获取所有学生
 const fetchAllStudents = () => {
-  get('api/exam/AllUser', {}, (message, data) => {
+  get('api/user/AllStudent', {}, (message, data) => {
     students.value = data
     availableStudents.value = students.value.filter(student =>
-      student.status === '审核通过' && student.role === '学生' && student.class_id === null
+      student.status === '审核通过' && student.classId === null
     )
     filteredAvailableStudents.value = [...availableStudents.value]
     console.log("所有学生：", students.value)
@@ -130,14 +143,6 @@ const filterClasses = () => {
   })
 }
 
-// 获取班级学生
-const getClassStudents = (classId) => {
-  get('api/exam/AllUser', {},
-    (message, data) => {
-      filteredStudents.value = data.filter(user => user.role === '学生' && user.class_id === classId)
-      console.log("班级学生：", filteredStudents.value)
-    })
-}
 
 // 搜索和筛选学生
 const filterStudents = () => {
@@ -149,9 +154,71 @@ const filterStudents = () => {
 
 // 查看班级详情
 const viewClassDetail = (cls) => {
-  getClassStudents(cls.id)
+  fetchClassById(cls)
   currentClass.value = cls
+  currentExitingClassId.value = cls.id
+  selectedExitStudentIds.value = []
   showClassDetail.value = true
+}
+
+// 全选/取消全选退出学生
+const handleSelectExitAll = (event) => {
+  if (event.target.checked) {
+    selectedExitStudentIds.value = filteredStudents.value.map(student => student.user_id)
+  } else {
+    selectedExitStudentIds.value = []
+  }
+}
+
+// 确认批量退出班级
+const confirmExitStudents = () => {
+  if (selectedExitStudentIds.value.length === 0) {
+    messageApi.warning('请至少选择一名学生')
+    return
+  }
+
+  post('api/exam/ExitClass', {
+    class_id: currentExitingClassId.value,
+    id: selectedExitStudentIds.value
+  }, (message) => {
+    messageApi.success(`成功让 ${selectedExitStudentIds.value.length} 名学生退出班级`)
+    fetchClasses()
+    fetchAllStudents()
+    selectedExitStudentIds.value = []
+    // 重新加载班级详情
+    if (currentClass.value) {
+      fetchClassById(currentClass.value)
+    }
+  }, (error) => {
+    messageApi.error(error)
+  })
+}
+
+// 单个学生退出班级
+const exitSingleStudent = (studentId) => {
+  Modal.confirm({
+    title: '确认退出班级',
+    content: '确定要让该学生退出班级吗？',
+    okText: '确认',
+    cancelText: '取消',
+    onOk: () => {
+      post('api/exam/ExitClass', {
+        class_id: currentExitingClassId.value,
+        id: studentId
+      }, (message) => {
+        messageApi.success('学生已成功退出班级')
+        fetchClasses()
+        fetchAllStudents()
+        selectedExitStudentIds.value = []
+        // 重新加载班级详情
+        if (currentClass.value) {
+          fetchClassById(currentClass.value)
+        }
+      }, (error) => {
+        messageApi.error(error)
+      })
+    }
+  })
 }
 
 // 打开添加学生弹窗
@@ -442,7 +509,7 @@ const clearSearch = () => {
                   <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                   <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
                 </svg>
-                {{ getTeacherName(cls.teacher_id) }}
+                班主任：{{ cls.teacherName }}
               </div>
               <div class="flex items-center text-sm" :class="isDark?'text-white/60':'text-gray-500'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -680,7 +747,7 @@ const clearSearch = () => {
               </div>
               <div class="flex justify-between">
                 <span :class="isDark?'text-white/60':'text-gray-500'">班主任:</span>
-                <span :class="isDark?'text-white':'text-gray-900'">{{ getTeacherName(currentClass?.teacher_id) }}</span>
+                <span :class="isDark?'text-white':'text-gray-900'">{{ classForm.teacher.account }}</span>
               </div>
               <div class="flex justify-between">
                 <span :class="isDark?'text-white/60':'text-gray-500'">学生人数:</span>
@@ -709,20 +776,30 @@ const clearSearch = () => {
         <div class="rounded-xl p-6 border" :class="isDark?'bg-white/5 border-white/10':'bg-gray-50 border-gray-200'">
           <div class="flex justify-between items-center mb-4">
             <h4 :class="isDark?'text-white':'text-gray-900'" class="text-lg font-medium">学生列表</h4>
-            <div class="relative">
-              <input
-                v-model="studentSearchQuery"
-                @input="filterStudents"
-                type="text"
-                placeholder="搜索学生..."
-                :class="[
-                  'px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent pl-10',
-                  isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-300 text-gray-900'
-                ]"
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5" :class="isDark?'text-white/50':'text-gray-400'" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-              </svg>
+            <div class="flex items-center space-x-4">
+              <div class="relative">
+                <input
+                  v-model="studentSearchQuery"
+                  @input="filterStudents"
+                  type="text"
+                  placeholder="搜索学生..."
+                  :class="[
+                    'px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent pl-10',
+                    isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-300 text-gray-900'
+                  ]"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5" :class="isDark?'text-white/50':'text-gray-400'" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <button
+                v-if="isAdmin"
+                @click="confirmExitStudents"
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors"
+                :disabled="selectedExitStudentIds.length === 0"
+              >
+                退出班级
+              </button>
             </div>
           </div>
 
@@ -730,23 +807,52 @@ const clearSearch = () => {
             <table class="w-full">
               <thead>
               <tr class="text-left border-b" :class="isDark?'text-white/50 border-white/10':'text-gray-500 border-gray-200'">
+                <th class="pb-3 px-4 w-12">
+                  <input
+                    v-if="isAdmin"
+                    type="checkbox"
+                    :class="isDark?'border-white/10':'border-gray-300'"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 rounded"
+                    :checked="filteredStudents.length > 0 && selectedExitStudentIds.length === filteredStudents.length"
+                    @change="handleSelectExitAll"
+                  />
+                </th>
                 <th class="pb-3 px-4">学生ID</th>
                 <th class="pb-3 px-4">姓名</th>
                 <th class="pb-3 px-4">性别</th>
                 <th class="pb-3 px-4">联系电话</th>
                 <th class="pb-3 px-4">邮箱</th>
+                <th v-if="isAdmin" class="pb-3 px-4">操作</th>
               </tr>
               </thead>
               <tbody>
               <tr v-for="student in filteredStudents" :key="student.user_id" class="border-b transition-colors" :class="isDark?'border-white/10 hover:bg-white/5':'border-gray-200 hover:bg-gray-50'">
+                <td class="py-4 px-4">
+                  <input
+                    v-if="isAdmin"
+                    type="checkbox"
+                    :value="student.user_id"
+                    v-model="selectedExitStudentIds"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 rounded"
+                    :class="isDark?'border-white/10':'border-gray-300'"
+                  />
+                </td>
                 <td class="py-4 px-4 font-mono" :class="isDark?'text-white':'text-gray-900'">{{ student.id }}</td>
                 <td class="py-4 px-4" :class="isDark?'text-white':'text-gray-900'">{{ student.account }}</td>
                 <td class="py-4 px-4" :class="isDark?'text-white':'text-gray-900'">{{ student.sex || '暂无' }}</td>
                 <td class="py-4 px-4" :class="isDark?'text-white':'text-gray-900'">{{ student.phone || '未填写' }}</td>
                 <td class="py-4 px-4" :class="isDark?'text-white':'text-gray-900'">{{ student.email || '未填写' }}</td>
+                <td v-if="isAdmin" class="py-4 px-4">
+                  <button
+                    @click="exitSingleStudent(student.user_id)"
+                    class="text-red-400 hover:text-red-600 transition-colors"
+                  >
+                    退出
+                  </button>
+                </td>
               </tr>
               <tr v-if="filteredStudents.length === 0">
-                <td colspan="5" class="py-8 text-center" :class="isDark?'text-white/50':'text-gray-500'">
+                <td colspan="7" class="py-8 text-center" :class="isDark?'text-white/50':'text-gray-500'">
                   暂无学生数据
                 </td>
               </tr>

@@ -135,6 +135,27 @@ public class ExamServiceImpl implements ExamService {
             throw new RuntimeException("加入班级失败",e.getCause());
         }
     }
+    //批量加入班级
+    @Override
+    @Transactional
+    public int BatchJoinClass(Integer class_id,String[] ids){
+        try{
+            int count=0;
+            //先更新班级表，只需要更新一次
+            int result=examMapper.UpdateClassSize(class_id);
+            if(result==0) throw new RuntimeException("更新班级表失败");
+            for(String idStr:ids){
+                Integer id=Integer.parseInt(idStr);
+                //在更新用户表
+                result=examMapper.JoinClass(class_id,id);
+                if(result==0) throw new RuntimeException("更新用户表失败");
+                count++;
+            }
+            return count;
+        }catch(Exception e){
+            throw new RuntimeException("批量加入班级失败",e.getCause());
+        }
+    }
     //退出班级
     @Override
     @Transactional
@@ -151,9 +172,49 @@ public class ExamServiceImpl implements ExamService {
             throw new RuntimeException("退出班级失败",e.getCause());
         }
     }
+    //批量退出班级
+    @Override
+    @Transactional
+    public int BatchExitClass(Integer class_id,String[] ids){
+        try{
+            int count=0;
+            for(String idStr:ids){
+                Integer id=Integer.parseInt(idStr);
+                //更新用户表
+                int result=examMapper.ExitClass(id);
+                if(result==0) throw new RuntimeException("更新用户表失败");
+                count++;
+            }
+            //只更新一次班级表，减少的数量为退出学生的数量
+            for(int i=0;i<ids.length;i++){
+                int result=examMapper.UpdateClassSizeExit(class_id);
+                if(result==0) throw new RuntimeException("更新班级表失败");
+            }
+            return count;
+        }catch(Exception e){
+            throw new RuntimeException("批量退出班级失败",e.getCause());
+        }
+    }
     //根据id查询班级
     @Override
-    public ExamClass SelectClassById(Integer id){return examMapper.SelectClassById(id);}
+    public ExamClass SelectClassById(Integer id){
+        ExamClass examclass=examMapper.SelectClassById(id);
+        if(examclass.getTeacherId()!=null){
+            User teacher=userMapper.getUserById(examclass.getTeacherId());
+            teacher.setPassword("****");
+            teacher.setAvatar("****");
+            teacher.setPhone("****");
+            examclass.setTeacher(teacher);
+        }
+        return examclass;
+    }
+
+    /*
+    * 根据班级id查询学生
+    * */
+    public List<User> SelectClassByUserId(Integer id){
+        return examMapper.SelectUserByClassId(id);
+    }
     //---------------------有关试卷--------------------------------------------------
     //添加试卷
     @Override

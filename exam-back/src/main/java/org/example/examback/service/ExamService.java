@@ -51,10 +51,16 @@ public interface ExamService {
     List<ExamClass> AllClass();
     //用户加入班级
     int JoinClass(Integer class_id,Integer id);
+    //批量加入班级
+    int BatchJoinClass(Integer class_id,String[] ids);
     //退出班级
     int ExitClass(Integer class_id,Integer id);
+    //批量退出班级
+    int BatchExitClass(Integer class_id,String[] ids);
     //根据id查询班级
     ExamClass SelectClassById(Integer id);
+    //根据班级id查询学生
+    List<User> SelectClassByUserId(Integer id);
     //---------------------有关试卷--------------------------------------------------
     //添加试卷
     int InsertExam(Exam exam);

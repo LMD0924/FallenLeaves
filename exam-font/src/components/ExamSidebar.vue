@@ -2,7 +2,7 @@
 import {ref, onMounted, onUnmounted, computed, watch} from 'vue'
 import { isDark, toggleTheme, currentTheme } from '@/stores/theme.js'
 import router from "@/router/index.js";
-import {get} from "@/net/index.js";
+import {get, post} from "@/net/index.js";
 import { useNotification } from '@/services/notificationService'
 import TopNotificationBar from '@/components/TopNotificationBar.vue'
 import webSocketService from '@/net/websocket'
@@ -459,7 +459,7 @@ const getUserInfo = () => {
       initNotificationService()
       initSidebarNotifications()
       requestNotificationPermission()
-
+      updateEndLoginTime()
       // 保留直接获取最新消息的逻辑，作为WebSocket的补充
       setTimeout(() => {
         getLatestNotice()
@@ -469,6 +469,17 @@ const getUserInfo = () => {
       User.value = { name: '未知用户', role: 'guest' }
     }
   )
+}
+
+/*
+* 当用户进入主页时更新最后的登录时间
+* */
+const updateEndLoginTime=()=>{
+  let params={
+    id:User.value.id,
+    endLoginTime:new Date().toISOString()
+  }
+  post('api/user/updateUserInfo',params,(message,data)=>{})
 }
 
 // 生命周期钩子
